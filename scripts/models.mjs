@@ -40,21 +40,36 @@ function tidy(dirs, since) {
   for (const dir of dirs) {
     if (!fs.existsSync(dir)) continue;
     for (const f of fs.readdirSync(dir).filter((n) => n.endsWith('.png'))) {
-      const file = path.join(dir, f);
-      if (fs.statSync(file).mtimeMs < since) continue;
-      const buf = fs.readFileSync(file);
-      const img = PNG.sync.read(buf);
-      const data = Buffer.from(img.data);
-      for (let i = 0; i < data.length; i += 4) if (data[i + 3] === 0) data[i] = data[i + 1] = data[i + 2] = 0;
-      const png = new PNG({ width: img.width, height: img.height });
-      png.data = data;
-      const out = PNG.sync.write(png, { deflateLevel: 9, filterType: -1, colorType: 6 });
-      before += buf.length;
-      after += Math.min(buf.length, out.length);
-      if (out.length < buf.length) fs.writeFileSync(file, out);
+      // One open file handle for the date check, the read and the rewrite, so the file can't be
+      // swapped between them.
+      const fd = fs.openSync(path.join(dir, f), 'r+');
+      try {
+        if (fs.fstatSync(fd).mtimeMs >= since) {
+          const [b, a] = tidyPng(fd);
+          before += b;
+          after += a;
+        }
+      } finally {
+        fs.closeSync(fd);
+      }
     }
   }
   if (before) console.log(`tidied renders: ${(before / 1048576).toFixed(1)} MB -> ${(after / 1048576).toFixed(1)} MB`);
+}
+
+// Returns [old size, new size]; rewrites the file only when that makes it smaller.
+function tidyPng(fd) {
+  const buf = fs.readFileSync(fd);
+  const img = PNG.sync.read(buf);
+  const data = Buffer.from(img.data);
+  for (let i = 0; i < data.length; i += 4) if (data[i + 3] === 0) data[i] = data[i + 1] = data[i + 2] = 0;
+  const png = new PNG({ width: img.width, height: img.height });
+  png.data = data;
+  const out = PNG.sync.write(png, { deflateLevel: 9, filterType: -1, colorType: 6 });
+  if (out.length >= buf.length) return [buf.length, buf.length];
+  fs.ftruncateSync(fd, 0);
+  fs.writeSync(fd, out, 0, out.length, 0);
+  return [buf.length, out.length];
 }
 
 const args0 = process.argv.slice(2);
