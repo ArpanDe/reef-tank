@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Renders the art for every style from the committed 3D renders, then compiles and lints the
+      # BrightScript. The art build prints warnings (over budget, missing art) without failing, so
+      # fail on them here.
+      - name: Build
+        run: |
+          npm run build 2>&1 | tee build.log
+          if grep -qi "warning" build.log; then echo "::error::The build printed warnings"; exit 1; fi
+      # Roku's Channel Store caps packages at about 4 MB.
+      - name: Package size
+        run: |
+          node scripts/roku.mjs zip --release
+          size=$(stat -c %s out/reef-tank.zip)
+          echo "Release package: $size bytes"
+          if [ "$size" -gt 4000000 ]; then echo "::error::Package is $size bytes, over the 4 MB limit"; exit 1; fi
