@@ -50,4 +50,5 @@ http
     });
     fs.createReadStream(file).pipe(res);
   })
-  .listen(port, () => console.log(`Reef Tank preview: http://localhost:${port}/`));
+  // Localhost only: the preview has an endpoint that writes files (Save frame).
+  .listen(port, '127.0.0.1', () => console.log(`Reef Tank preview: http://localhost:${port}/`));

@@ -48,14 +48,19 @@ non-certified/private first to test the store install on your own devices before
 
 ## Store artwork
 
-`npm run art` renders these from the illustrated tank into `src/images/store/`:
+`npm run art` renders these from the illustrated tank:
 
 | File | Size | Use |
 |---|---|---|
-| `icon_focus_fhd.png` | 540 × 405 | Channel poster (FHD) |
-| `icon_focus_hd.png` | 290 × 218 | Channel poster (HD) |
-| `splash_fhd.png` | 1920 × 1080 | Splash (FHD) |
-| `splash_hd.png` | 1280 × 720 | Splash (HD) |
+| `src/images/store/icon_focus_fhd.jpg` | 540 × 405 | Channel poster (FHD), packaged |
+| `src/images/store/icon_focus_hd.jpg` | 290 × 218 | Channel poster (HD), packaged |
+| `out/store/splash_fhd.jpg` | 1920 × 1080 | Listing artwork, **not packaged** |
+| `out/store/splash_hd.jpg` | 1280 × 720 | Listing artwork, **not packaged** |
+
+The package has no splash images: on a Roku Ultra a full-screen splash stayed in texture memory at
+8.4 MB, and a screensaver doesn't need one (the manifest keeps `splash_color`). **Check** whether
+current certification requires `splash_screen_*` for screensaver apps; if it does, add a small
+splash rather than a full-screen one.
 
 Add title text or a badge by creating `art/store/icon_focus.svg` or `art/store/splash.svg`. They're
 drawn over the tank in tank coordinates (icons show the region x 480–1440, y 160–880).

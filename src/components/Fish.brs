@@ -3,16 +3,21 @@
 '
 ' Coordinates: m.pos is the creature's visual center on screen. This node
 ' scales around the sprite center, so translation = center - size/2 at any
-' depth scale, and scale.x = -1 mirrors the sprite to face left.
+' depth scale. Scale is never negative: facing left swaps every part to its
+' pre-mirrored image and mirrored position (setFacing), because Roku doesn't
+' mirror images under a negative scale.
 
 sub init()
     m.moveAnim = m.top.findNode("moveAnim")
     m.moveInterp = m.top.findNode("moveInterp")
-    m.turnAnim = m.top.findNode("turnAnim")
-    m.turnInterp = m.top.findNode("turnInterp")
+    m.turnOut = m.top.findNode("turnOut")
+    m.turnOutInterp = m.top.findNode("turnOutInterp")
+    m.turnIn = m.top.findNode("turnIn")
+    m.turnInInterp = m.top.findNode("turnInInterp")
     m.pauseTimer = m.top.findNode("pauseTimer")
     m.moveAnim.observeField("state", "onMoveState")
-    m.turnAnim.observeField("state", "onTurnState")
+    m.turnOut.observeField("state", "onTurnOut")
+    m.turnIn.observeField("state", "onTurnIn")
     m.pauseTimer.observeField("fire", "nextMove")
     m.top.observeField("config", "onConfig")
     m.facing = 1
@@ -34,7 +39,11 @@ sub onConfig()
     m.top.id = m.uid
     m.top.scaleRotateCenter = [m.w / 2, m.h / 2]
     m.moveInterp.fieldToInterp = m.uid + ".translation"
-    m.turnInterp.fieldToInterp = m.uid + ".scale"
+    m.turnOutInterp.fieldToInterp = m.uid + ".scale"
+    m.turnInInterp.fieldToInterp = m.uid + ".scale"
+    m.partNodes = [] ' every part's poster (and joint), so setFacing can swap them
+    m.baseRGB = [1.0, 1.0, 1.0]
+    if cfg.tintRGB <> invalid then m.baseRGB = cfg.tintRGB
     if cfg.opacity <> invalid then m.top.opacity = cfg.opacity
 
     ' All of this creature's looping motion (tails, fins, frames, school wobble)
@@ -44,6 +53,7 @@ sub onConfig()
     ' their parts at all: at half size, tinted, nobody can see a tail wag.
     school = 0
     if cfg.schoolSize <> invalid then school = cfg.schoolSize
+    m.isSchool = school > 1
     m.still = (cfg.still = true)
     m.loop = invalid
     m.partPeriods = []
@@ -64,7 +74,7 @@ sub onConfig()
             ' Bigger schools spread into a looser cloud.
             offset = [rand(-1, 1) * m.w * (0.8 + school * 0.08), rand(-1, 1) * m.h * (1.0 + school * 0.1)]
             member.translation = offset
-            buildParts(member, cfg.tint)
+            buildParts(member, currentTint())
             if not m.still
                 ' Each member wanders a little inside the formation.
                 wobble = []
@@ -79,7 +89,7 @@ sub onConfig()
             end if
         end for
     else
-        buildParts(m.top, cfg.tint)
+        buildParts(m.top, currentTint())
     end if
     if m.loop <> invalid then m.loop.control = "start"
 
@@ -89,11 +99,26 @@ sub onConfig()
         startCrawling(cfg)
     else
         m.pos = [rand(m.bounds[0], m.bounds[2]), rand(m.bounds[1], m.bounds[3])]
-        if Rnd(0) < 0.5 then m.facing = -1
-        m.top.scale = [m.facing * m.s, m.s]
+        m.top.scale = [m.s, m.s]
+        if Rnd(0) < 0.5 then setFacing(-1)
         m.top.translation = [m.pos[0] - m.w / 2, m.pos[1] - m.h / 2]
         nextMove()
     end if
+end sub
+
+' The creature's color multiplier: its depth tint (far fish are bluer) times
+' the scene's night darkening.
+function currentTint() as string
+    night = m.top.nightRGB
+    return rgbColor(m.baseRGB[0] * night[0], m.baseRGB[1] * night[1], m.baseRGB[2] * night[2])
+end function
+
+sub applyTint()
+    if m.partNodes = invalid then return
+    tint = currentTint()
+    for each rec in m.partNodes
+        rec.poster.blendColor = tint
+    end for
 end sub
 
 ' The creature's shared loop Animation, created on first use.
@@ -104,42 +129,69 @@ end function
 
 ' Adds the sprite's part posters to parent and their motion to the shared
 ' loop. Parts are cropped to their visible pixels, so each sits at x/y on the
-' creature's canvas and pivots are converted to the part's own coordinates.
+' creature's canvas. A part that moves (wag, pulse) hangs off its own joint:
+' a Group placed exactly at the pivot (where a tail meets the body), with the
+' poster offset relative to it, and the motion rotates or scales the joint
+' around its own origin. On a real Roku (Ultra, OS 16), rotating the Poster
+' itself around an off-center scaleRotateCenter inside a moving, flipping
+' fish left tails drawn detached from their bodies.
 ' A part that wants a shorter period than the loop repeats several times per
 ' loop (cycles), so everything still fits in one Animation.
 sub buildParts(parent as object, tint as string)
-    framePhase = rand(0.05, 0.45)
-    for i = 0 to m.spec.parts.Count() - 1
-        part = m.spec.parts[i]
+    ' School members and far-away fish don't move their fins, so they're one
+    ' pre-combined image instead of 2-3: fewer images for the Roku to draw.
+    if m.spec.flat <> invalid and (m.still or m.isSchool)
         poster = parent.createChild("Poster")
         m.partCount += 1
         poster.id = m.uid + "p" + m.partCount.ToStr()
+        poster.uri = m.spec.flat.uri
+        poster.width = m.spec.flat.w
+        poster.height = m.spec.flat.h
+        poster.translation = [m.spec.flat.x, m.spec.flat.y]
+        poster.blendColor = tint
+        m.partNodes.Push({ poster: poster, joint: invalid, part: m.spec.flat })
+        return
+    end if
+    framePhase = rand(0.05, 0.45)
+    for i = 0 to m.spec.parts.Count() - 1
+        part = m.spec.parts[i]
+        kind = part.anim
+        if kind = invalid or m.still then kind = "none"
+        m.partCount += 1
+        id = m.uid + "p" + m.partCount.ToStr()
+        if kind = "wag" or kind = "pulse"
+            joint = parent.createChild("Group")
+            joint.id = id + "j"
+            joint.translation = [part.pivot[0], part.pivot[1]]
+            poster = joint.createChild("Poster")
+            poster.translation = [part.x - part.pivot[0], part.y - part.pivot[1]]
+        else
+            joint = invalid
+            poster = parent.createChild("Poster")
+            poster.translation = [part.x, part.y]
+        end if
+        poster.id = id
+        m.partNodes.Push({ poster: poster, joint: joint, part: part })
         poster.uri = part.uri
         poster.width = part.w
         poster.height = part.h
-        poster.translation = [part.x, part.y]
         poster.blendColor = tint
-        kind = part.anim
-        if kind = invalid or m.still then kind = "none"
         if part.anim = "frameB" then poster.opacity = 0
         cycles = 1
         if m.partPeriods[i] > 0 then cycles = Int(m.loopPeriod / m.partPeriods[i] + 0.5)
         if cycles < 1 then cycles = 1
-        pivot = [part.pivot[0] - part.x, part.pivot[1] - part.y]
         if kind = "wag"
             amp = 0.3
             if part.amp <> invalid then amp = part.amp
-            poster.scaleRotateCenter = pivot
-            addInterp(loopAnim(), poster.id + ".rotation", "float", invalid, sineCycles(0, amp, cycles, Rnd(0)))
+            addInterp(loopAnim(), joint.id + ".rotation", "float", invalid, sineCycles(0, amp, cycles, Rnd(0)))
         else if kind = "pulse"
             amp = 0.08
             if part.amp <> invalid then amp = part.amp
-            poster.scaleRotateCenter = pivot
             values = []
             for each v in sineCycles(0, amp, cycles, Rnd(0))
                 values.Push([1 + v, 1 - v])
             end for
-            addInterp(loopAnim(), poster.id + ".scale", "vector2d", invalid, values)
+            addInterp(loopAnim(), joint.id + ".scale", "vector2d", invalid, values)
         else if kind = "frameA" or kind = "frameB"
             ' Both frames use the same phase so they never show together.
             flip = frameFlip(framePhase, cycles)
@@ -177,10 +229,12 @@ sub nextMove()
     end if
     m.pending = target
     if dir <> m.facing
-        m.turnInterp.keyValue = [[m.facing * m.s, m.s], [dir * m.s, m.s]]
-        m.facing = dir
+        ' Squash to a sliver, swap art at the narrowest point, stretch back.
+        m.pendingDir = dir
+        m.turnOutInterp.keyValue = [[m.s, m.s], [m.s * 0.08, m.s]]
+        m.turnInInterp.keyValue = [[m.s * 0.08, m.s], [m.s, m.s]]
         m.turning = true
-        m.turnAnim.control = "start"
+        m.turnOut.control = "start"
     else
         startMove(target, travelTime(target))
     end if
@@ -234,11 +288,43 @@ sub startMove(target as object, duration as float)
     m.moveAnim.control = "start"
 end sub
 
-sub onTurnState()
-    if m.turnAnim.state = "stopped" and m.turning
+sub onTurnOut()
+    if m.turnOut.state = "stopped" and m.turning
+        setFacing(m.pendingDir)
+        m.turnIn.control = "start"
+    end if
+end sub
+
+sub onTurnIn()
+    if m.turnIn.state = "stopped" and m.turning
         m.turning = false
         startMove(m.pending, travelTime(m.pending))
     end if
+end sub
+
+' Points the creature left (-1) or right (1) by swapping each part to its
+' mirrored (or original) image and position. Creatures that never turn (the
+' crab, the jellyfish) have no mirrored art and stay as drawn.
+sub setFacing(dir as integer)
+    m.facing = dir
+    for each rec in m.partNodes
+        part = rec.part
+        uri = part.uri
+        x = part.x
+        pivot = part.pivot
+        if dir < 0 and part.uriL <> invalid
+            uri = part.uriL
+            x = m.w - part.x - part.w
+            if pivot <> invalid then pivot = [m.w - part.pivot[0], part.pivot[1]]
+        end if
+        rec.poster.uri = uri
+        if rec.joint <> invalid
+            rec.joint.translation = [pivot[0], pivot[1]]
+            rec.poster.translation = [x - pivot[0], part.y - pivot[1]]
+        else
+            rec.poster.translation = [x, part.y]
+        end if
+    end for
 end sub
 
 sub onMoveState()
@@ -277,11 +363,11 @@ sub startVisit()
         else
             start = [1920 + halfW, y0]
             target = [-halfW, y1]
-            m.facing = -1
+            setFacing(-1)
         end if
     end if
     m.pos = start
-    m.top.scale = [m.facing * m.s, m.s]
+    m.top.scale = [m.s, m.s]
     m.top.translation = [start[0] - m.w / 2, start[1] - m.h / 2]
     m.moveAnim.easeFunction = "linear"
     startMove(target, rand(m.spec.duration[0], m.spec.duration[1]))
@@ -312,8 +398,8 @@ sub startCrawling(cfg as object)
     ' Feet stay on one line of the floor; x is the sprite's center on screen.
     m.feetY = rand(m.bounds[1], m.bounds[3])
     m.crawlX = rand(m.w, 1920 - m.w)
-    if m.spec.sideways = invalid and Rnd(0) < 0.5 then m.facing = -1
-    m.top.scale = [m.facing, 1]
+    m.top.scale = [1, 1]
+    if m.spec.sideways = invalid and Rnd(0) < 0.5 then setFacing(-1)
     m.top.translation = [m.crawlX - m.w / 2, m.feetY - m.h]
     nextCrawl()
 end sub
@@ -330,10 +416,7 @@ sub nextCrawl()
         if Rnd(0) < 0.5 then dir = -1
         dx = dir * stride
         duration = stride / rand(spec.speed[0], spec.speed[1])
-        if spec.sideways = invalid and dir <> m.facing
-            m.facing = dir
-            m.top.scale = [m.facing, 1]
-        end if
+        if spec.sideways = invalid and dir <> m.facing then setFacing(dir)
         m.walked = true
     else
         duration = rand(spec.rest[0], spec.rest[1])
@@ -363,3 +446,4 @@ sub onCrawlState(event as object)
     if anim.id <> m.crawlAnims[m.crawlIdx].id then return
     nextCrawl()
 end sub
+

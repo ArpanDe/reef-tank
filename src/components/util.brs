@@ -78,3 +78,14 @@ sub addInterp(anim as object, target as string, kind as string, keys as dynamic,
     interp.keyValue = values
     interp.fieldToInterp = target
 end sub
+
+' "0xRRGGBBFF" from channel values in 0..1 (for blendColor).
+function rgbColor(r as float, g as float, b as float) as string
+    return "0x" + hex2(r) + hex2(g) + hex2(b) + "FF"
+end function
+
+function hex2(v as float) as string
+    text = StrI(Int(clamp(v, 0, 1) * 255 + 0.5), 16)
+    if text.Len() < 2 then text = "0" + text
+    return text
+end function

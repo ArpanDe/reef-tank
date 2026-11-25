@@ -23,11 +23,10 @@
         </Group>
         <LightRays id="rays" />
 
-        <Rectangle id="night" width="1920" height="1080" color="0x050E2CFF" opacity="0" />
-
         <!-- Burn-in light cycle: a faint bright veil, then a faint dark veil (one
-             Rectangle that changes color while invisible). Above the night
-             overlay, so the guarantee holds at any time of day. -->
+             Rectangle that changes color while invisible). Night is applied as
+             a tint on every image, under the veil, so the guarantee holds at
+             any time of day. -->
         <Rectangle id="veil" width="1920" height="1080" color="0xE6F7FFFF" opacity="0" />
         <ClockOverlay id="clock" />
 

@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "description": "An original aquarium screensaver for Roku",
+  "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "art": "node scripts/render-art.mjs",
     "lint": "bsc",

@@ -4,10 +4,12 @@
      and then sets `finished`. -->
 <component name="Fish" extends="Group">
     <interface>
-        <!-- { spec, uid, depthScale, tint, opacity, schoolSize, bounds: [xMin, yMin, xMax, yMax], floorSpeed }
+        <!-- { spec, uid, depthScale, tintRGB, opacity, schoolSize, bounds: [xMin, yMin, xMax, yMax], floorSpeed }
              For critters, bounds' y range is where their feet stand, and floorSpeed is the floor's scroll speed. -->
         <field id="config" type="assocarray" />
         <field id="finished" type="boolean" value="false" />
+        <!-- Night darkening as a multiply on every part (set by the scene). -->
+        <field id="nightRGB" type="floatarray" value="[1.0, 1.0, 1.0]" onChange="applyTint" />
     </interface>
     <script type="text/brightscript" uri="pkg:/components/util.brs" />
     <script type="text/brightscript" uri="pkg:/components/Fish.brs" />
@@ -19,8 +21,15 @@
         <Animation id="moveAnim" easeFunction="inOutQuad" repeat="false">
             <Vector2DFieldInterpolator id="moveInterp" />
         </Animation>
-        <Animation id="turnAnim" duration="0.7" easeFunction="inOutQuad" repeat="false">
-            <Vector2DFieldInterpolator id="turnInterp" key="[0.0, 1.0]" />
+        <!-- Turning around: squash narrow, swap to the other-facing art, stretch
+             back. Roku can't mirror an image with a negative scale (it moves
+             child images but doesn't flip them), so scale stays positive and
+             left-facing art is pre-mirrored at build time. -->
+        <Animation id="turnOut" duration="0.3" easeFunction="inQuad" repeat="false">
+            <Vector2DFieldInterpolator id="turnOutInterp" key="[0.0, 1.0]" />
+        </Animation>
+        <Animation id="turnIn" duration="0.3" easeFunction="outQuad" repeat="false">
+            <Vector2DFieldInterpolator id="turnInInterp" key="[0.0, 1.0]" />
         </Animation>
         <Timer id="pauseTimer" repeat="false" />
     </children>

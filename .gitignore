@@ -3,3 +3,4 @@ out/
 .env
 src/images/themes/
 src/images/store/
+.claude/worktrees/

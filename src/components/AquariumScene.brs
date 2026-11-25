@@ -9,8 +9,8 @@
 '      then a faint dark veil (one Rectangle, "veil", changing color while
 '      invisible). A pixel with channel value c moves by at least
 '      max(brighten * (255 - c), darken * c), about 16/255 or more, so no pixel
-'      holds its value through a cycle. The veil sits above the night overlay, so
-'      this holds day and night.
+'      holds its value through a cycle. Night darkens every image through its
+'      tint (blendColor), and the veil sits on top, so this holds day and night.
 '
 ' Performance: Roku's own tests saw cheap devices lag at 20-50 concurrent
 ' Animation nodes, so scene-wide motion is packed into a few Animations with
@@ -41,6 +41,14 @@ sub init()
     m.timescale = 1.0
     if m.dev.timescale <> invalid then m.timescale = Val(m.dev.timescale)
     m.ambient = not (m.dev.ambient <> invalid and m.dev.ambient = "off")
+    ' off=caustics,rays,veil,plants,bubbles,fish,critters switches single layers
+    ' off, to measure what each costs on a device (with fps_display on).
+    m.off = {}
+    if m.dev.off <> invalid
+        for each name in m.dev.off.Split(",")
+            m.off[name] = true
+        end for
+    end if
 
     m.theme = loadTheme(m.prefs.style)
     if m.theme = invalid then m.theme = loadTheme("illustrated")
@@ -53,21 +61,28 @@ sub init()
     m.layers = { far: m.top.findNode("farFish"), mid: m.top.findNode("midFish"), near: m.top.findNode("nearFish") }
     m.rays = invalid
     m.caustics = invalid
+    ' Night is a multiply on every image (blendColor), not a full-screen layer:
+    ' on a Roku Ultra the night overlay cost ~5 fps. These are the images and
+    ' creatures to tint.
+    m.nightRGB = [1.0, 1.0, 1.0]
+    m.tintPosters = []
 
     buildBackdrop()
-    buildPlants()
-    setupBurnIn()
+    if m.off.plants = invalid then buildPlants()
+    if m.off.veil = invalid then setupBurnIn()
     if m.ambient
-        spawnFish()
-        spawnCritters()
-        setupCaustics()
+        if m.off.fish = invalid then spawnFish()
+        if m.off.critters = invalid then spawnCritters()
+        if m.off.caustics = invalid then setupCaustics()
         m.rays = m.top.findNode("rays")
-        m.rays.config = { ray: m.theme.ray }
-        m.top.findNode("bubbles").config = {
-            bubbles: m.theme.bubbles,
-            floorY: 1080 - m.floorCover + 12,
-            speed: m.frontSpeed
-        }
+        if m.off.rays = invalid then m.rays.config = { ray: m.theme.ray }
+        if m.off.bubbles = invalid
+            m.top.findNode("bubbles").config = {
+                bubbles: m.theme.bubbles,
+                floorY: 1080 - m.floorCover + 12,
+                speed: m.frontSpeed
+            }
+        end if
         if m.prefs.clock <> "off" then m.top.findNode("clock").format = m.prefs.clock
         setupVisitors()
     end if
@@ -114,7 +129,9 @@ end function
 sub buildBackdrop()
     cfg = burnInConfig()
     bd = m.theme.backdrop
-    if bd.water <> invalid then m.top.findNode("water").uri = bd.water.uri
+    water = m.top.findNode("water")
+    if bd.water <> invalid then water.uri = bd.water.uri
+    m.tintPosters.Push(water)
 
     speed = m.prefs.scroll.ToInt() * m.timescale
     m.frontSpeed = cfg.scrollFront * speed
@@ -150,6 +167,7 @@ sub placeTiles(layerId as string, tile as dynamic)
             poster.width = chunk.w
             poster.height = tile.h
             poster.translation = [copyX + chunk.x, 1080 - tile.bottom - tile.h]
+            m.tintPosters.Push(poster)
         end for
     end for
 end sub
@@ -253,6 +271,7 @@ sub buildPlant(layer as object, plant as object, x as float, baseY as float, pha
         poster.width = seg.w
         poster.height = seg.h
         poster.translation = [-seg.w / 2, -seg.h]
+        m.tintPosters.Push(poster)
         moves = false
         for each j in swayAt
             if j = i then moves = true
@@ -309,9 +328,10 @@ sub spawnFish()
     end while
 end sub
 
-' Dancing sunlight on the reef: two stretched copies of the caustics texture,
-' the second mirrored, drift past each other on slow, different loops so the
-' net seems to shimmer and re-form. It fades out at night with the rays.
+' Dancing sunlight on the reef: the caustics texture, stretched and drifting
+' on a slow loop. One copy, not two: on a Roku Ultra the second copy cost ~3
+' fps for a subtle shimmer (big semi-transparent quads are what limit frame
+' rate). It fades out at night with the rays.
 sub setupCaustics()
     tex = m.theme.caustics
     if tex = invalid then return
@@ -322,9 +342,9 @@ sub setupCaustics()
     canvasW = 1920 + 240
     canvasH = 1080 + 160
     anim = newLoop(m.top, 45.0)
-    ids = ["causticA", "causticB"]
-    opacities = [0.10, 0.08]
-    for i = 0 to 1
+    ids = ["causticA"]
+    opacities = [0.13]
+    for i = 0 to 0
         poster = m.caustics.createChild("Poster")
         poster.id = ids[i]
         poster.uri = tex.uri
@@ -370,7 +390,7 @@ sub spawnCritters()
             spec: c,
             uid: nextUid("cr"),
             depthScale: 1.0,
-            tint: "0xFFFFFFFF",
+            tintRGB: [1.0, 1.0, 1.0],
             bounds: [0, 1080 - 80, 1920, 1080 - 14], ' the front reef's bottom ledge
             floorSpeed: m.frontSpeed
         }
@@ -416,10 +436,10 @@ end function
 
 function createCreature(c as object, band as string) as object
     s = m.theme.bandScale[band]
-    tint = "0xFFFFFFFF"
+    tint = [1.0, 1.0, 1.0]
     opacity = 1.0
     if band = "far"
-        tint = "0x8DB2D4FF"
+        tint = [0.553, 0.698, 0.831] ' bluer with distance
         opacity = 0.9
     end if
     school = 0
@@ -436,7 +456,7 @@ function createCreature(c as object, band as string) as object
         uid: nextUid("c"),
         still: (band = "far"),
         depthScale: s,
-        tint: tint,
+        tintRGB: tint,
         opacity: opacity,
         schoolSize: school,
         bounds: [mx, y[0], 1920 - mx, y[1]]
@@ -447,7 +467,6 @@ end function
 ' ---------- day / night ----------
 
 sub setupLighting()
-    m.night = m.top.findNode("night")
     timer = m.top.findNode("lightTimer")
     timer.observeField("fire", "updateLighting")
     updateLighting()
@@ -462,8 +481,7 @@ sub updateLighting()
     else
         n = nightAmount(currentHour())
     end if
-    m.night.opacity = 0.5 * n
-    m.night.visible = n > 0.001 ' skip drawing a full-screen layer when it does nothing
+    applyNight([1 - 0.5 * n, 1 - 0.48 * n, 1 - 0.40 * n]) ' close to the old 50% navy overlay
     if m.caustics <> invalid
         m.caustics.opacity = 1.0 - 0.85 * n
         m.caustics.visible = m.caustics.opacity > 0.05
@@ -481,6 +499,24 @@ function currentHour() as float
     now.ToLocalTime()
     return now.GetHours() + now.GetMinutes() / 60.0
 end function
+
+' Darkens everything for night through each image's tint. Runs at most once a
+' minute, and does nothing while the light isn't changing.
+sub applyNight(rgb as object)
+    if rgb[0] = m.nightRGB[0] and rgb[1] = m.nightRGB[1] and rgb[2] = m.nightRGB[2] then return
+    m.nightRGB = rgb
+    tint = rgbColor(rgb[0], rgb[1], rgb[2])
+    for each poster in m.tintPosters
+        poster.blendColor = tint
+    end for
+    for each layerId in ["farFish", "midFish", "nearFish", "critterLayer"]
+        layer = m.top.findNode(layerId)
+        for i = 0 to layer.getChildCount() - 1
+            layer.getChild(i).nightRGB = rgb
+        end for
+    end for
+    m.top.findNode("bubbles").nightRGB = rgb
+end sub
 
 ' 0 = full daylight, 1 = full night. Dusk 18:30-21:00, dawn 05:00-07:00.
 function nightAmount(h as float) as float
@@ -512,6 +548,7 @@ sub spawnVisitor()
         end for
     end if
     node = createCreature(v, pickOne(v.bands))
+    node.nightRGB = m.nightRGB
     node.observeField("finished", "onVisitorFinished")
 end sub
 

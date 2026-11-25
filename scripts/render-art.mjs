@@ -419,6 +419,8 @@ const MAX_TEXTURE = 2048;
 const BUDGET = { textureMB: 20, packageMB: 4 };
 // Soft textures stored at a fraction of their display size (non-pixelated styles only).
 const SOFT_SCALE = { far: 0.5, ray: 0.25, caustics: 0.5 };
+// The size LightRays.brs draws each light ray at.
+const RAY_DRAWN = [240, 820];
 
 function alphaBox(img) {
   let [x0, y0, x1, y1] = [img.width, img.height, -1, -1];
@@ -433,6 +435,31 @@ function alphaBox(img) {
     }
   }
   return x1 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+}
+
+// Draws src over dst (same size), straight alpha.
+function blendOver(dst, src) {
+  for (let i = 0; i < dst.data.length; i += 4) {
+    const sa = src.data[i + 3] / 255;
+    if (sa === 0) continue;
+    const da = dst.data[i + 3] / 255;
+    const oa = sa + da * (1 - sa);
+    for (let c = 0; c < 3; c++) {
+      dst.data[i + c] = Math.round((src.data[i + c] * sa + dst.data[i + c] * da * (1 - sa)) / oa);
+    }
+    dst.data[i + 3] = Math.round(oa * 255);
+  }
+}
+
+function flipH(img) {
+  const data = new Uint8Array(img.data.length);
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      const src = (y * img.width + x) * 4;
+      data.set(img.data.subarray(src, src + 4), (y * img.width + (img.width - 1 - x)) * 4);
+    }
+  }
+  return { width: img.width, height: img.height, data };
 }
 
 function crop(img, x, y, w, h) {
@@ -540,8 +567,11 @@ async function exportDevice(style, t, outDir) {
 
   // Soft single textures: ray (stretched as is) and caustics (cropped, then stretched).
   if (t.ray) {
+    // Never store a ray larger than it's drawn (LightRays.brs draws it at RAY_DRAWN).
     const s = soft('ray');
-    const img = s !== 1 ? await resize(t.ray.img, Math.round(t.ray.w * s), Math.round(t.ray.h * s)) : t.ray.img;
+    const w = Math.min(Math.round(t.ray.w * s), RAY_DRAWN[0]);
+    const h = Math.min(Math.round(t.ray.h * s), RAY_DRAWN[1]);
+    const img = w !== t.ray.w || h !== t.ray.h ? await resize(t.ray.img, w, h) : t.ray.img;
     out.ray = { uri: await write(t.ray.name, img), w: t.ray.w, h: t.ray.h };
   }
   if (t.caustics) {
@@ -563,20 +593,39 @@ async function exportDevice(style, t, outDir) {
   }
 
   // Creatures: each part cropped to its visible pixels; x/y place it on the shared canvas.
+  // Creatures that turn around also get a left-facing (mirrored) copy of every part: on a
+  // real Roku a negative scale moves child images to their mirrored places but doesn't mirror
+  // the images themselves, so fish swam backwards with detached tails. The crab (walks
+  // sideways) and the jellyfish (rises straight up) never turn, so they don't need one.
+  const turns = (c) => !c.sideways && c.motion !== 'rise';
   const creatures = async (list) => {
     const res = [];
     for (const c of list) {
       const parts = [];
       for (const p of c.parts) {
         const box = alphaBox(p.img) ?? { x: 0, y: 0, w: 1, h: 1 };
-        const uri = await write(p.name, crop(p.img, box.x, box.y, box.w, box.h));
+        const cropped = crop(p.img, box.x, box.y, box.w, box.h);
+        const uri = await write(p.name, cropped);
         const part = { uri, x: box.x, y: box.y, w: box.w, h: box.h, anim: p.anim, pivot: p.pivot };
+        if (turns(c)) part.uriL = await write(`${p.name}.L`, flipH(cropped));
         if (p.amp !== undefined) part.amp = p.amp;
         if (p.period !== undefined) part.period = p.period;
         parts.push(part);
       }
       const { parts: _drop, ...rest } = c;
-      res.push({ ...rest, parts });
+      const out = { ...rest, parts };
+      // One pre-combined image at the rest pose (frame A), for creatures drawn without
+      // moving parts: school members and far-away fish (only species that can be either). One image instead of 2-3 per fish
+      // cuts the number of images the Roku draws each frame.
+      if (!c.critter && (c.school || (c.bands ?? []).includes('far'))) {
+        const flat = { width: c.w, height: c.h, data: new Uint8Array(c.w * c.h * 4) };
+        for (const p of c.parts) if (p.anim !== 'frameB') blendOver(flat, p.img);
+        const box = alphaBox(flat) ?? { x: 0, y: 0, w: 1, h: 1 };
+        const fc = crop(flat, box.x, box.y, box.w, box.h);
+        out.flat = { uri: await write(`${c.id}.flat`, fc), x: box.x, y: box.y, w: box.w, h: box.h };
+        if (turns(c)) out.flat.uriL = await write(`${c.id}.flat.L`, flipH(fc));
+      }
+      res.push(out);
     }
     return res;
   };
@@ -619,9 +668,15 @@ async function buildStoreImages(theme) {
     ['icon_focus_fhd', 540, 405, '480 160 960 720'],
     ['icon_focus_hd', 290, 218, '480 160 960 720'],
   ];
+  // Splash images aren't packaged: a full-screen splash stayed loaded at 8.4 MB of texture
+  // memory on a Roku Ultra, and a screensaver doesn't need one (the manifest keeps
+  // splash_color). They're still written to out/store/ for the Channel Store listing.
+  const listing = path.join(outReview, 'store');
+  fs.mkdirSync(listing, { recursive: true });
   for (const [name, w, h, view] of out) {
     const png = encodePng(renderSvg(frame(w, h, view, name.replace(/_(f?hd)$/, ''))));
-    fs.writeFileSync(path.join(dir, `${name}.jpg`), await sharp(png).jpeg({ quality: 88, mozjpeg: true }).toBuffer());
+    const target = name.startsWith('splash') ? listing : dir;
+    fs.writeFileSync(path.join(target, `${name}.jpg`), await sharp(png).jpeg({ quality: 88, mozjpeg: true }).toBuffer());
   }
   console.log('[store] icons and splash -> src/images/store/');
 }

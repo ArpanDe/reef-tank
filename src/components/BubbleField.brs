@@ -7,6 +7,7 @@ sub onConfig()
     if textures = invalid or textures.Count() = 0 then return
     periods = [7.0, 9.5, 12.0]
     count = 0
+    m.posters = []
     for each period in periods
         anim = newLoop(m.top, period)
         for i = 0 to 3
@@ -23,6 +24,7 @@ sub onConfig()
             poster.uri = tex.uri
             poster.width = tex.w
             poster.height = tex.h
+            m.posters.Push(poster)
             path = risePath(tex, cfg.floorY, cfg.speed * period, rand(80, 1840 + cfg.speed * period), Rnd(0))
             addInterp(anim, poster.id + ".translation", "vector2d", path.keys, path.values)
             count += 1
@@ -68,3 +70,12 @@ function bubbleAt(u as float, tex as object, floorY as float, top as float, drif
     x = x0 - drift * u + wobble * Sin(wphase + u * waves * 6.2831853) - tex.w / 2
     return [x, floorY + (top - floorY) * rise]
 end function
+
+sub applyTint()
+    if m.posters = invalid then return
+    rgb = m.top.nightRGB
+    tint = rgbColor(rgb[0], rgb[1], rgb[2])
+    for each poster in m.posters
+        poster.blendColor = tint
+    end for
+end sub
