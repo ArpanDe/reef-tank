@@ -1,0 +1,9 @@
+# anthias body (static): small orange-pink reef fish
+grid:
+......k......
+....kklkkkk..
+...kllllllfkk
+..ffffffffkfk
+..ffffffvvffk
+...kkLLLLLkk.
+.....kkkkk...

@@ -185,6 +185,7 @@ async function buildStyle(style) {
   }
 
   const ray = spec.ray ? await asset(spec.ray) : (warn(style, 'ray missing'), null);
+  const caustics = spec.caustics ? await asset(spec.caustics) : (warn(style, 'caustics missing'), null);
   const bubbles = [];
   for (const f of spec.bubbles ?? []) bubbles.push(await asset(f));
   if (!bubbles.length) warn(style, 'no bubbles');
@@ -225,6 +226,7 @@ async function buildStyle(style) {
     bandScale: spec.bandScale ?? { far: 0.5, mid: 0.75, near: 1 },
     backdrop,
     ray,
+    caustics,
     bubbles,
     plants,
     fish,
@@ -279,6 +281,7 @@ function sheetSvg(t) {
     items.push({ label: `plant ${p.id}`, w: ps.width, h: ps.height, svg: `<g transform="translate(${ps.width / 2},${ps.height})">${ps.svg}</g>` });
   }
   t.bubbles.forEach((b, i) => items.push({ label: `bubble ${i}`, w: Math.max(b.w, 60), h: b.h, svg: img(b) }));
+  if (t.caustics) items.push({ label: 'caustics (50%)', w: t.caustics.w * 0.5, h: t.caustics.h * 0.5, svg: `<g transform="scale(0.5)">${img(t.caustics)}</g>` });
   if (t.ray) items.push({ label: 'ray (40%)', w: t.ray.w * 0.4, h: t.ray.h * 0.4, svg: `<g transform="scale(0.4)">${img(t.ray)}</g>` });
 
   const W = 1920;
@@ -362,6 +365,11 @@ function sceneSvg(t) {
   if (t.visitors[0]) placeCreature(t.visitors[0], t.visitors[0].bands[0], 1350, 330, true);
 
   const plantBase = H - (t.backdrop.floor?.h ?? 120) * 0.55;
+  // Caustics: two stretched copies, the second mirrored, at low opacity (as in AquariumScene).
+  const causticSvgs = t.caustics
+    ? `<g opacity="0.10"><image href="${href(t.caustics)}" x="-60" y="-40" width="${W + 120}" height="${H + 80}" preserveAspectRatio="none"/></g>` +
+      `<g opacity="0.08" transform="translate(${W},0) scale(-1,1)"><image href="${href(t.caustics)}" x="-60" y="-40" width="${W + 120}" height="${H + 80}" preserveAspectRatio="none"/></g>`
+    : '';
   // Critters walk on the front part of the floor (same band as the engine's crawlBand()).
   const floorH = t.backdrop.floor?.h ?? 120;
   const critterSvgs = t.critters
@@ -390,7 +398,7 @@ function sceneSvg(t) {
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
 <defs><filter id="far"><feColorMatrix type="matrix" values="0.56 0 0 0 0  0 0.71 0 0 0  0 0 0.84 0 0  0 0 0 1 0"/></filter></defs>
-${water}${layer(t.backdrop.far)}${bands.far.join('')}${layer(t.backdrop.reef)}${bands.mid.join('')}${plantSvgs}${bands.near.join('')}${layer(t.backdrop.floor)}${critterSvgs}${rays}${bubbles}
+${water}${layer(t.backdrop.far)}${bands.far.join('')}${layer(t.backdrop.reef)}${bands.mid.join('')}${plantSvgs}${bands.near.join('')}${layer(t.backdrop.floor)}${critterSvgs}${causticSvgs}${rays}${bubbles}
 </svg>`;
 }
 

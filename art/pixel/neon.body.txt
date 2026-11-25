@@ -1,7 +1,0 @@
-# neon body (static): dark back, glowing cyan stripe, red rear belly
-grid:
-....kkkkkk..
-...kKKKKKKk.
-...cccccckWk
-...kRRRRWWk.
-....kkkkkk..

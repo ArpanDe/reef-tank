@@ -1,8 +1,9 @@
 # Reef Tank
 
-An original aquarium screensaver for Roku: a calm reef tank with swimming fish, schools, swaying
-plants, crabs, shrimp and other critters wandering the reef floor, rising bubbles, light rays from
-the surface, and the occasional turtle, manta or jellyfish passing through. The reef scrolls slowly past in parallax. It has two art styles (**Illustrated**
+An original aquarium screensaver for Roku: a sunlit coral reef with swimming fish, clouds of small
+reef fish, swaying sea whips and anemones, crabs, shrimp and other critters wandering the reef
+floor, rising bubbles, light rays and dancing sunlight, and the occasional turtle, manta or
+jellyfish passing through. The reef scrolls slowly past in parallax. It has two art styles (**Illustrated**
 and **Pixel art**), an optional drifting clock, and lighting that follows the time of day.
 
 It's a replacement for Roku's Aquatic Life screensaver, which Roku is retiring on December 1, 2026.
@@ -67,10 +68,10 @@ or B didn't move by 12/255 within 5 minutes of real time:
 
 | Style | Lighting | Result | Half of pixels changed by | Slowest pixel changed after |
 |---|---|---|---|---|
-| Illustrated | Day | PASS | 0 min 29 s | 2 min 21 s |
-| Illustrated | Night | PASS | 1 min 05 s | 2 min 01 s |
-| Pixel art | Day | PASS | 0 min 26 s | 2 min 23 s |
-| Pixel art | Night | PASS | 0 min 22 s | 1 min 56 s |
+| Illustrated | Day | PASS | 1 min 20 s | 2 min 29 s |
+| Illustrated | Night | PASS | 0 min 51 s | 2 min 09 s |
+| Pixel art | Day | PASS | 0 min 25 s | 2 min 21 s |
+| Pixel art | Night | PASS | 0 min 22 s | 2 min 01 s |
 
 These were measured in brs-engine, not on a Roku; the motions are the same `Animation` nodes on a device.
 

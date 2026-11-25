@@ -26,9 +26,10 @@ const DITHER24 = [[0, 4], [6, 2], [1, 5], [7, 3]].map((r) => r.map((v) => (v + 0
 export const dither = (x, y) => DITHER24[((y % 4) + 4) % 4][((x % 2) + 2) % 2];
 // Periodic sine: k whole waves across the tile.
 export const psin = (x, k, phase = 0) => Math.sin((2 * Math.PI * k * x) / TILE + phase);
-// Periodic value noise in [0,1]: lattice spacing `cell` must divide TILE (1, 2, 3, 6, 71, ...).
-export function pnoise(seed, cell) {
-  const n = TILE / cell;
+// Periodic value noise in [0,1]. The lattice spacing is adjusted so a whole number of cells fits
+// across the tile (cell 6 -> 71 lattice points, cell 12 -> 35.5 -> 36 points of 11.83 cells, ...).
+export function pnoise(seed, cellWanted) {
+  const n = Math.max(1, Math.round(TILE / cellWanted)), cell = TILE / n;
   const at = (i, j) => { // hash of (i mod n, j, seed) -> [0,1)
     let h = Math.imul((((i % n) + n) % n) + 1, 0x27d4eb2d) ^ Math.imul(j + 7919, 0x165667b1) ^ Math.imul(seed + 1, 0x9e3779b1);
     h = Math.imul(h ^ (h >>> 15), 0x85ebca6b); h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
@@ -83,12 +84,12 @@ export class Canvas {
 
 // Shared water gradient (screen fraction 0 = surface, 1 = floor), used by water and to tint the far layer.
 export const WATER_STOPS = [
-  [0.0, hex('#6fe0ec')],
-  [0.12, hex('#3cc0dc')],
-  [0.3, hex('#1f93c4')],
-  [0.5, hex('#166aa6')],
-  [0.72, hex('#104783')],
-  [1.0, hex('#0a2654')],
+  [0.0, hex('#9af8ee')],   // clear tropical turquoise at the surface
+  [0.1, hex('#5ee4e6')],
+  [0.28, hex('#2cbcdc')],
+  [0.5, hex('#1c8cc8')],
+  [0.72, hex('#1466aa')],
+  [1.0, hex('#0e4282')],
 ];
 export function waterAt(t) {
   t = Math.min(1, Math.max(0, t));

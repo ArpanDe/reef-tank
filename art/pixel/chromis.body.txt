@@ -1,0 +1,8 @@
+# chromis body (static): small blue-green reef fish
+grid:
+.....kkkk...
+...kkcccckk.
+..jjjjjjjkjk
+..jjjjjjjjjk
+...kkJJJJkk.
+.....kkkk...

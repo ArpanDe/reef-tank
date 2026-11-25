@@ -43,7 +43,8 @@ sub onConfig()
         for i = 0 to school - 1
             member = m.top.createChild("Group")
             member.id = m.uid + "m" + i.ToStr()
-            offset = [rand(-1.4, 1.4) * m.w, rand(-1.6, 1.6) * m.h]
+            ' Bigger schools spread into a looser cloud.
+            offset = [rand(-1, 1) * m.w * (0.8 + school * 0.08), rand(-1, 1) * m.h * (1.0 + school * 0.1)]
             member.translation = offset
             buildParts(member, cfg.tint)
             ' Each member wanders a little inside the formation.

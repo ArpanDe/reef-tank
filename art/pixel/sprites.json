@@ -1,56 +1,16 @@
 {
   "pixelScale": 6,
-  "bandScale": {
-    "far": 0.5,
-    "mid": 0.8333,
-    "near": 1
-  },
-  "backdrop": {
-    "water": "water.px.mjs",
-    "far": "far.px.mjs",
-    "reef": "reef.px.mjs",
-    "floor": "floor.px.mjs"
-  },
+  "bandScale": { "far": 0.5, "mid": 0.8333, "near": 1 },
+  "backdrop": { "water": "water.px.mjs", "far": "far.px.mjs", "reef": "reef.px.mjs", "floor": "floor.px.mjs" },
   "ray": "ray.px.mjs",
-  "bubbles": [
-    "bubble-s.txt",
-    "bubble-m.txt",
-    "bubble-l.txt"
-  ],
+  "caustics": "caustics.px.mjs",
+  "bubbles": ["bubble-s.txt", "bubble-m.txt", "bubble-l.txt"],
   "plants": [
-    {
-      "id": "kelp",
-      "segments": [
-        "kelp-1.txt",
-        "kelp-2.txt",
-        "kelp-3.txt",
-        "kelp-4.txt",
-        "kelp-5.txt",
-        "kelp-6.txt"
-      ],
-      "overlap": 6,
-      "sway": 0.05
-    },
-    {
-      "id": "seagrass",
-      "segments": [
-        "seagrass-1.txt",
-        "seagrass-2.txt",
-        "seagrass-3.txt"
-      ],
-      "overlap": 6,
-      "sway": 0.08
-    },
-    {
-      "id": "anemone",
-      "segments": [
-        "anemone-1.txt",
-        "anemone-2.txt",
-        "anemone-3.txt"
-      ],
-      "overlap": 6,
-      "sway": 0.04
-    }
+    { "id": "seawhip", "segments": ["seawhip-1.txt", "seawhip-2.txt", "seawhip-3.txt", "seawhip-4.txt", "seawhip-5.txt", "seawhip-6.txt"], "overlap": 6, "sway": 0.05 },
+    { "id": "seagrass", "segments": ["seagrass-1.txt", "seagrass-2.txt", "seagrass-3.txt"], "overlap": 6, "sway": 0.08 },
+    { "id": "anemone", "segments": ["anemone-1.txt", "anemone-2.txt", "anemone-3.txt"], "overlap": 6, "sway": 0.04 },
+    { "id": "searod", "segments": ["searod-1.txt", "searod-2.txt", "searod-3.txt", "searod-4.txt", "searod-5.txt"], "overlap": 6, "sway": 0.06 },
+    { "id": "softtree", "segments": ["softtree-1.txt", "softtree-2.txt", "softtree-3.txt"], "overlap": 6, "sway": 0.05 }
   ],
   "creatures": {
     "clownfish": {
@@ -95,11 +55,18 @@
         { "file": "seahorse.body.txt" }
       ]
     },
-    "neon": {
+    "chromis": {
       "parts": [
-        { "file": "neon.tailA.txt", "anim": "frameA" },
-        { "file": "neon.tailB.txt", "anim": "frameB" },
-        { "file": "neon.body.txt" }
+        { "file": "chromis.tailA.txt", "anim": "frameA" },
+        { "file": "chromis.tailB.txt", "anim": "frameB" },
+        { "file": "chromis.body.txt" }
+      ]
+    },
+    "anthias": {
+      "parts": [
+        { "file": "anthias.tailA.txt", "anim": "frameA" },
+        { "file": "anthias.tailB.txt", "anim": "frameB" },
+        { "file": "anthias.body.txt" }
       ]
     },
     "turtle": {

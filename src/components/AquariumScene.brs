@@ -46,6 +46,7 @@ sub init()
     m.bandY = { far: [180, 640], mid: [160, 760], near: [220, 820] }
     m.layers = { far: m.top.findNode("farFish"), mid: m.top.findNode("midFish"), near: m.top.findNode("nearFish") }
     m.rays = invalid
+    m.caustics = invalid
 
     buildBackdrop()
     buildPlants()
@@ -53,6 +54,7 @@ sub init()
     if m.ambient
         spawnFish()
         spawnCritters()
+        setupCaustics()
         m.rays = m.top.findNode("rays")
         m.rays.config = { ray: m.theme.ray }
         m.top.findNode("bubbles").config = {
@@ -121,7 +123,7 @@ sub buildPlants()
     if plants = invalid or plants.Count() = 0 then return
     layer = m.top.findNode("plantsLayer")
     baseY = 1080 - m.floorH * 0.55
-    count = 5
+    count = 7
     slot = m.tileW / count
     for i = 0 to count - 1
         kind = pickOne(plants)
@@ -168,6 +170,35 @@ sub spawnFish()
         ' A school takes several slots.
         if c.school <> invalid then slots += 3 else slots += 1
     end while
+end sub
+
+' Dancing sunlight on the reef: two stretched copies of the caustics texture,
+' the second mirrored, drift past each other on slow, different loops so the
+' net seems to shimmer and re-form. It fades out at night with the rays.
+sub setupCaustics()
+    tex = m.theme.caustics
+    if tex = invalid then return
+    m.caustics = m.top.findNode("caustics")
+    ids = ["causticA", "causticB"]
+    opacities = [0.10, 0.08]
+    periods = [37.0, 53.0]
+    for i = 0 to 1
+        poster = m.caustics.createChild("Poster")
+        poster.id = ids[i]
+        poster.uri = tex.uri
+        poster.width = 1920 + 240
+        poster.height = 1080 + 160
+        poster.opacity = opacities[i]
+        poster.scaleRotateCenter = [poster.width / 2, poster.height / 2]
+        if i = 1 then poster.scale = [-1, 1]
+        path = []
+        phase = Rnd(0) * 6.2831853
+        for k = 0 to 24
+            a = 6.2831853 * k / 24 + phase
+            path.Push([-120 + 100 * Sin(a), -80 + 60 * Sin(2 * a)])
+        end for
+        addLoop(m.top, ids[i] + ".translation", "vector2d", path, periods[i])
+    end for
 end sub
 
 ' Critters walk on the front part of the reef floor: 2, 4 or 6 of them with
@@ -240,7 +271,7 @@ function createCreature(c as object, band as string) as object
     spread = 0.5
     if c.school <> invalid
         school = Int(rand(c.school[0], c.school[1] + 1))
-        spread = 1.9
+        spread = 1.3 + school * 0.08 ' matches the school's cloud size in Fish.brs
     end if
     mx = c.w * s * spread + 30
     y = m.bandY[band]
@@ -276,6 +307,7 @@ sub updateLighting()
         n = nightAmount(currentHour())
     end if
     m.night.opacity = 0.5 * n
+    if m.caustics <> invalid then m.caustics.opacity = 1.0 - 0.85 * n
     if m.rays <> invalid
         m.rays.opacity = 1.0 - 0.8 * n
         if n > 0.5 then m.rays.tint = "0xB0C8FFFF" else m.rays.tint = "0xFFFFFFFF"

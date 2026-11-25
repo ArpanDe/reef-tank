@@ -18,6 +18,7 @@
             <Group id="nearFish" />
             <Group id="floorLayer" />
             <Group id="critterLayer" />
+            <Group id="caustics" />
             <BubbleField id="bubbles" />
         </Group>
         <LightRays id="rays" />

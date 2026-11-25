@@ -93,7 +93,7 @@ export const darken = (c, t) => mix(c, '#000000', t);
 // Water gradient, top (0) to bottom (1) of the 1080-px screen: evenly spaced stops joined by a
 // smooth spline, so the colour changes steadily with no flat bands. water.svg.mjs renders it and the
 // backdrops tint themselves toward the water colour behind them with waterAt().
-export const WATER_STOPS = ['#8cdcea', '#4cb2d8', '#2384bd', '#145b97', '#0b3a6b', '#05203e'];
+export const WATER_STOPS = ['#92f0ee', '#48cce0', '#1f9ccc', '#146aa6', '#0b4078', '#062448'];
 export function waterRGB(t) {
   t = Math.max(0, Math.min(1, t));
   const C = WATER_STOPS.map(hexToRgb);

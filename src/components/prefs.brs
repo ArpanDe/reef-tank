@@ -5,7 +5,7 @@ function prefsSchema() as object
     return [
         { key: "style", label: "Art style", values: ["illustrated", "pixel"], names: ["Illustrated", "Pixel art"], fallback: "illustrated" },
         { key: "scroll", label: "Scrolling", values: ["1", "2", "3"], names: ["Slow", "Medium", "Fast"], fallback: "1" },
-        { key: "fish", label: "Fish", values: ["6", "12", "20"], names: ["Few", "Some", "Lots"], fallback: "12" },
+        { key: "fish", label: "Fish", values: ["8", "14", "22"], names: ["Few", "Some", "Lots"], fallback: "14" },
         { key: "clock", label: "Clock", values: ["off", "12", "24"], names: ["Off", "12-hour", "24-hour"], fallback: "off" },
         { key: "lighting", label: "Lighting", values: ["auto", "day", "night"], names: ["Follow time of day", "Always day", "Always night"], fallback: "auto" },
         { key: "visitors", label: "Rare visitors", values: ["on", "off"], names: ["On", "Off"], fallback: "on" }

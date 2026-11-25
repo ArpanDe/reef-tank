@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="40" viewBox="0 0 80 40">
+  <defs><linearGradient id="t" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#f8803a"/><stop offset="1" stop-color="#ffa868"/></linearGradient></defs>
+  <!-- lyre tail with long trailing lobes -->
+  <path d="M31,16 L22,16 C17,11 10,5 2,2 C7,10 9,16 8,20 C9,24 7,30 2,38 C10,35 17,29 22,24 L31,24 Z" fill="url(#t)"/>
+  <path d="M22,16 C17,11 10,5 2,2 M2,38 C10,35 17,29 22,24" fill="none" stroke="#d8287a" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M22,16 C17,11 10,5 2,2 C7,10 9,16 8,20 C9,24 7,30 2,38 C10,35 17,29 22,24" fill="none" stroke="#6a1a10" stroke-width="1.2" stroke-linejoin="round"/>
+</svg>

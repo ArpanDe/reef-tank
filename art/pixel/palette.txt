@@ -32,6 +32,11 @@ r #ff6b5b
 R #c43a3e
 # glowing cyan (neon)
 c #7af6ff
+j #6ee8c8
+J #26a8a8
+l #ffc8a8
+f #ff9070
+L #e0505e
 C #1fb4d6
 # greens (turtle shell, sea grass)
 G #a6d468

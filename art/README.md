@@ -58,10 +58,11 @@ clusters with low stretches every ~700–1100 px, so open water keeps passing th
 |---|---|---|
 | `water` | 8 × 1080 | Bright near the surface, deep blue at the bottom. Stretched horizontally. Keep it a smooth, steady gradient top to bottom (no flat bands) so vertical sway changes every row |
 | `far` | 2556 × ≤600 | Tiles. Low contrast, blue-shifted, like it's far away through water |
-| `reef` | 2556 × ≤540 | Tiles. Colorful but slightly less saturated than the fish so fish stand out |
-| `floor` | 2556 × 200–280 | Tiles. A living **reef floor**, not a sandy one: coral rubble, low coral heads (brain, boulder, plate), encrusting coral, sponges, tube worms and a few small sand pockets. The top edge is irregular, with coral heads poking up. The **bottom ~45%** is the ground critters walk on, so keep it fairly low and horizontal (rubble, encrusting coral, sand pockets) with no tall objects; taller features belong in the upper part |
+| `reef` | 2556 × ≤540 | Tiles. A **healthy, crowded tropical reef**: rock ~85%+ covered by living coral, sponges, anemones and clams, in saturated colors. It may sit slightly darker and bluer than the floor for depth, but never desaturated. Pale, white or grey corals read as dead (bleached) coral, and big bare rock mounds read as tombstones: avoid both |
+| `floor` | 2556 × 200–280 | Tiles. A **coral garden on warm coral sand** (golden or cream, never grey gravel or pale bone-like fragments): coral heads, clams, sponges, anemones and zoanthid carpets, grouped in textured clusters rather than lone rounded domes. The top edge is irregular, with coral heads poking up. The **bottom ~45%** is the ground critters walk on, so keep it fairly low and horizontal (rubble, encrusting coral, sand pockets) with no tall objects; taller features belong in the upper part |
 | `ray` | 360 × 1100 | One soft light shaft, **white** with alpha falloff (the engine tints it and sets opacity) |
 | `bubbles` | 3 files | Small, medium, large (illustrated ≈14/22/34 px) |
+| `caustics` | 960 × 540 | The dancing sunlight net on a shallow sea floor: thin, soft, wavy **white** lines in a cellular pattern, transparent elsewhere. The engine stretches two copies 2× over the tank at low opacity and drifts them past each other. Doesn't need to tile |
 
 ## Creatures
 
@@ -79,7 +80,8 @@ canvas size** (same SVG viewBox or grid size), so they line up with no offsets. 
 | angelfish | 200 × 240 | 34 × 40 | tail (wag), body (long trailing fins are part of the body) |
 | pufferfish | 170 × 140 | 28 × 24 | tail (wag), body |
 | seahorse | 90 × 200 | 15 × 34 | dorsal fin (wag, small amp), body. Upright, faces right |
-| neon | 70 × 28 | 12 × 5 | tail (wag), body. Tiny schooling fish with a glowing stripe |
+| chromis | 70 × 34 | 12 × 6 | tail (wag), body. Small blue-green reef fish, shown in clouds of 8–14 |
+| anthias | 80 × 40 | 13 × 7 | tail (wag), body. Small orange-pink reef fish, shown in clouds of 8–14 |
 | turtle | 420 × 300 | 70 × 50 | rear flipper (wag), body (shell, head), front flipper (wag) |
 | manta | 520 × 300 | 86 × 50 | far wing (wag), body, near wing (wag). Gliding, three-quarter view |
 | jellyfish | 160 × 300 | 26 × 50 | tentacles (wag, small amp, pivot at the bell), bell (pulse) |
@@ -113,7 +115,7 @@ render-art converts it to final pixels.
 A plant is a stack of upright **segments**, bottom to top. Each segment's **bottom-center** attaches
 to the **top-center** of the segment below. The engine rotates each segment a little with a phase lag,
 so the whole stem sways. Segment widths ≤ 120 px, heights 60–140 px, 3–7 segments per plant.
-Make at least 3 plant types (for example tall kelp ribbon, short sea grass, anemone).
+Make at least 3 plant types, all tropical (for example tall gorgonian sea whips, short sea grass, anemone). No kelp: it's a cold-water plant.
 
 ## sprites.json
 
@@ -125,7 +127,7 @@ Make at least 3 plant types (for example tall kelp ribbon, short sea grass, anem
   "ray": "ray.svg",
   "bubbles": ["bubble-s.svg", "bubble-m.svg", "bubble-l.svg"],
   "plants": [
-    { "id": "kelp", "segments": ["kelp-1.svg", "kelp-2.svg", "kelp-3.svg"], "overlap": 4, "sway": 0.06 }
+    { "id": "seawhip", "segments": ["seawhip-1.svg", "seawhip-2.svg", "seawhip-3.svg"], "overlap": 4, "sway": 0.06 }
   ],
   "creatures": {
     "clownfish": {

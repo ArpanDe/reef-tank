@@ -86,11 +86,11 @@ npm run shot -- store-night-clock
 **Short description:** A calm reef aquarium for your TV, in illustrated or pixel-art style.
 
 **Long description:**
-Turn your TV into a peaceful saltwater reef tank. Clownfish, tangs, angelfish, a pufferfish, a
-seahorse and darting schools of neon fish swim through swaying kelp and anemones while crabs,
-shrimp and sea stars wander the coral floor, bubbles rise and sunlight ripples down from the
-surface. The reef slowly scrolls past, so nothing stays still long enough to burn into your screen. Now and then a sea turtle, manta ray or jellyfish
-drifts by.
+Turn your TV into a peaceful, thriving coral reef tank. Clownfish, tangs, angelfish, a pufferfish,
+a seahorse and shimmering clouds of chromis and anthias swim over swaying sea whips and anemones,
+while crabs, shrimp and sea stars wander the coral floor. Sunlight dances across the reef and
+bubbles drift up to the surface. Now and then a sea turtle, manta ray or jellyfish passes by.
+The reef slowly scrolls past, so nothing stays still long enough to burn into your screen.
 
 - Two art styles: hand-crafted illustrated, or retro pixel art
 - Lighting follows the time of day, with moonlit blue after dark

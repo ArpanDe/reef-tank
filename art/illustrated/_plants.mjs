@@ -19,70 +19,68 @@ export function segment(name, k) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${p.width}" height="${h}" viewBox="0 0 ${p.width} ${h}"><g transform="translate(${p.width / 2},${h + base})"><defs>${p.defs}</defs>${p.body}</g></svg>`;
 }
 
-// ---------- kelp: tall stipe with long, wavy, streaming ribbon blades ----------
+// ---------- sea whip: a purple gorgonian of tall, slender, polyp-fuzzed rods ----------
 
-function kelp() {
-  const r = rng(301);
-  const heights = [112, 112, 112, 112, 112, 112];
+function seawhip() {
+  const r = rng(515);
+  const heights = [110, 110, 110, 110, 110, 110];
   const overlap = 6;
-  const step = 112 - overlap;
+  const step = 110 - overlap;
   const total = heights.reduce((a, b) => a + b, 0) - overlap * (heights.length - 1);
-  const stemX = (h) => 3.5 * Math.sin((2 * Math.PI * h) / step);
-  const defs = `<radialGradient id="kf" cx="0.35" cy="0.3" r="0.8"><stop offset="0" stop-color="#e6d888"/><stop offset="1" stop-color="#7a6a1e"/></radialGradient>`;
-
-  const stipe = [];
-  for (let h = -10; h <= total - 60; h += 8) stipe.push([stemX(h), -h]);
-  const stipeSvg = `<path d="${smooth(stipe)}" stroke="#3c3810" stroke-width="6.5" fill="none" stroke-linecap="round"/><path d="${smooth(stipe)}" stroke="#86792a" stroke-width="4" fill="none" stroke-linecap="round"/>`;
-
-  const tones = [['#5e5c1c', '#a49a34', '#d2c668'], ['#585e22', '#8f9a36', '#c6cc6a'], ['#665616', '#ae9030', '#dcc060']];
-  const blades = [];
-  let side = 1;
-  for (let hb = 40; hb < total - 150; hb += r.range(34, 46)) {
-    blades.push({ hb, side, len: r.range(150, 190), wid: r.range(13, 17), reach: r.range(20, 32), tone: r.pick(tones), ph: r.range(0, 6.28) });
-    side = -side;
-  }
-  // crown blades at the top, streaming up from the end of the stipe
-  for (const [s, len, reach] of [[1, 150, 10], [-1, 140, 14], [1, 112, 22]]) {
-    blades.push({ hb: total - 160 + (len - 112) * 0.2, side: s, len, wid: 14, reach, tone: tones[1], ph: r.range(0, 6.28), crown: true });
-  }
-
-  const svg = blades.map((b, i) => {
-    const x0 = stemX(b.hb);
-    const y0 = -b.hb;
-    const s = b.side;
-    const spine = [];
-    for (let t = 0; t <= 1.0001; t += 1 / 16) {
-      const out = b.reach * Math.sin(Math.min(1, t * 1.8) * Math.PI / 2) + 5 * Math.sin(b.ph + t * 7) * t;
-      spine.push([Math.max(-56, Math.min(56, x0 + s * (3 + out))), y0 - 4 - b.len * t]);
+  const stemX = (h) => 3 * Math.sin((2 * Math.PI * h) / step);
+  const rods = [];
+  // short trunk, then whips fanning gently up from it; the tallest stays near the centre line
+  const fork = 70;
+  rods.push({ pts: Array.from({ length: 9 }, (_, i) => [stemX((fork + 10) * (i / 8) - 10), -((fork + 10) * (i / 8) - 10)]), w0: 13, w1: 11 });
+  const whips = [
+    { lean: 0, len: total - fork - 16, wob: 5 },
+    { lean: -30, len: total - fork - 120, wob: 7 },
+    { lean: 34, len: total - fork - 80, wob: 6 },
+    { lean: -46, len: total - fork - 260, wob: 6 },
+    { lean: 48, len: total - fork - 230, wob: 7 },
+  ];
+  for (const wp of whips) {
+    const ph = r.range(0, 6.28);
+    const pts = [];
+    for (let i = 0; i <= 24; i++) {
+      const t = i / 24;
+      const hgt = fork + wp.len * t;
+      const x = (wp.lean === 0 ? stemX(hgt) : stemX(fork)) + wp.lean * Math.pow(t, 0.7) + wp.wob * Math.sin(ph + t * 5) * t;
+      pts.push([Math.max(-48, Math.min(48, x)), -hgt]);
     }
-    const left = [];
-    const right = [];
-    for (let j = 0; j < spine.length; j++) {
-      const t = j / (spine.length - 1);
-      const A = spine[Math.max(0, j - 1)];
-      const C = spine[Math.min(spine.length - 1, j + 1)];
-      let dx = C[0] - A[0];
-      let dy = C[1] - A[1];
-      const L = Math.hypot(dx, dy) || 1;
-      dx /= L;
-      dy /= L;
-      const env = Math.min(1, t * 6) * (1 - Math.pow(t, 3));
-      const ruffle = 1 + 0.18 * Math.sin(t * 40 + i);
-      const w = (b.wid / 2) * env * ruffle + 0.6;
-      left.push([spine[j][0] - dy * w, spine[j][1] + dx * w]);
-      right.push([spine[j][0] + dy * w, spine[j][1] - dx * w]);
+    rods.push({ pts, w0: 10, w1: 4.6 });
+    // an occasional side branch
+    if (wp.lean !== 0 && r() < 0.8) {
+      const j = r.int(8, 14);
+      const [bx, by] = pts[j];
+      const dir = Math.sign(wp.lean) || 1;
+      const bl = r.range(60, 110);
+      const bp = [];
+      for (let i = 0; i <= 10; i++) {
+        const t = i / 10;
+        bp.push([Math.max(-50, Math.min(50, bx + dir * 14 * Math.pow(t, 0.8))), by - bl * t]);
+      }
+      rods.push({ pts: bp, w0: 7, w1: 4 });
     }
-    const tip = spine[spine.length - 1];
-    const gid = `kg${i}`;
-    const [c0, c1, c2] = b.tone;
-    return `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="${f1(x0)}" y1="${f1(y0)}" x2="${f1(tip[0])}" y2="${f1(tip[1])}"><stop offset="0" stop-color="${c0}"/><stop offset="0.45" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient>
-<path d="${smooth([...left, ...right.reverse()], true)}" fill="url(#${gid})" fill-opacity="0.93" stroke="#45420f" stroke-width="1.4" stroke-linejoin="round"/>
-<path d="${smooth(spine.slice(2, -2))}" stroke="#e6de90" stroke-opacity="0.4" stroke-width="1.2" fill="none"/>
-${b.crown ? '' : `<ellipse cx="${f1(x0 + s * 4)}" cy="${f1(y0 - 2)}" rx="4.2" ry="5.6" fill="url(#kf)" stroke="#45420f" stroke-width="1.1"/>`}`;
-  });
-  const back = svg.filter((_, i) => i % 2 === 1).join('');
-  const front = svg.filter((_, i) => i % 2 === 0).join('');
-  return { width: 120, heights, overlap, defs, body: back + stipeSvg + front };
+  }
+  const defs = `<linearGradient id="sw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5a1a7a"/><stop offset="0.45" stop-color="#a03ac8"/><stop offset="1" stop-color="#6a2090"/></linearGradient>`;
+  const body = [];
+  for (const rd of rods) body.push(`<path d="${taper(rd.pts, rd.w0, rd.w1)}" fill="url(#sw)" stroke="#2e0a40" stroke-width="1.3" stroke-linejoin="round"/>`);
+  // fuzzy polyps along every rod
+  for (const rd of rods) {
+    for (let i = 1; i < rd.pts.length; i++) {
+      const [x, y] = rd.pts[i];
+      for (let k = 0; k < 3; k++) {
+        const side = r.sign();
+        const wdt = rd.w0 + (rd.w1 - rd.w0) * (i / (rd.pts.length - 1));
+        body.push(`<circle cx="${f1(x + side * r.range(0.2, 0.55) * wdt)}" cy="${f1(y + r.range(-3, 3))}" r="${f1(r.range(0.9, 1.6))}" fill="${r() < 0.6 ? '#f0b0ff' : '#ffe0ff'}" fill-opacity="0.85"/>`);
+      }
+    }
+    if (rd === rods[0]) continue; // the trunk ends inside the fork
+    const tip = rd.pts[rd.pts.length - 1];
+    body.push(`<circle cx="${f1(tip[0])}" cy="${f1(tip[1])}" r="${f1(rd.w1 * 0.55)}" fill="#e090ff"/>`);
+  }
+  return { width: 110, heights, overlap, defs, body: body.join('') };
 }
 
 // ---------- sea grass: a short clump of ribbon blades ----------
@@ -125,8 +123,17 @@ function seagrass() {
 
 // ---------- anemone: short fleshy column under a mop of bulb-tipped tentacles ----------
 
-function anemone() {
-  const r = rng(909);
+const ANEMONE_PINK = {
+  col: ['#5e2420', '#a85040', '#622822'], tip: ['#fbd2e2', '#d9739f', '#a24a76'], back: ['#76304e', '#b05686'],
+  line: '#6a2848', bulb: ['#c4709a', '#f6c6da'], disc: '#8a3442', colLine: '#4a1c14', stripe: '#e8a890',
+};
+const ANEMONE_GREEN = {
+  col: ['#1e5a2a', '#3aa04a', '#1e5a2a'], tip: ['#f8d8ff', '#c070e0', '#7a3aa8'], back: ['#2a6a3a', '#7ab84a'],
+  line: '#2a2050', bulb: ['#a060c8', '#f0c8ff'], disc: '#2a6a3a', colLine: '#123a18', stripe: '#a8e8a0',
+};
+
+function anemone(seed = 909, C = ANEMONE_PINK) {
+  const r = rng(seed);
   const heights = [60, 60, 84];
   const overlap = 8;
   const discH = 82;
@@ -145,11 +152,11 @@ function anemone() {
   for (let i = -3; i <= 3; i++) {
     const pts = [];
     for (let h = -6; h <= discH - 4; h += 10) pts.push([(i / 3.6) * (colW(h) / 2), -h]);
-    stripes.push(`<path d="${smooth(pts)}" stroke="#e8a890" stroke-opacity="0.28" stroke-width="2.2" fill="none"/>`);
+    stripes.push(`<path d="${smooth(pts)}" stroke="${C.stripe}" stroke-opacity="0.28" stroke-width="2.2" fill="none"/>`);
   }
-  const defs = `<linearGradient id="ac" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5e2420"/><stop offset="0.42" stop-color="#a85040"/><stop offset="1" stop-color="#622822"/></linearGradient>
-<radialGradient id="at" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#fbd2e2"/><stop offset="0.6" stop-color="#d9739f"/><stop offset="1" stop-color="#a24a76"/></radialGradient>
-<linearGradient id="atb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#76304e"/><stop offset="1" stop-color="#b05686"/></linearGradient>`;
+  const defs = `<linearGradient id="ac" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${C.col[0]}"/><stop offset="0.42" stop-color="${C.col[1]}"/><stop offset="1" stop-color="${C.col[2]}"/></linearGradient>
+<radialGradient id="at" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="${C.tip[0]}"/><stop offset="0.6" stop-color="${C.tip[1]}"/><stop offset="1" stop-color="${C.tip[2]}"/></radialGradient>
+<linearGradient id="atb" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${C.back[0]}"/><stop offset="1" stop-color="${C.back[1]}"/></linearGradient>`;
 
   // Tentacles spread from the oral disc: upright in the middle, arching out and drooping at the
   // sides so they hang over the top of the column.
@@ -181,16 +188,16 @@ function anemone() {
       }
       const tip = pts[pts.length - 1];
       const back = layer === 0;
-      out.push(`<path d="${taper(pts, 8, 5.6)}" fill="${back ? 'url(#atb)' : 'url(#at)'}" stroke="#6a2848" stroke-width="1.1"/>`);
-      out.push(`<circle cx="${f1(tip[0])}" cy="${f1(tip[1])}" r="${f1(back ? 4.4 : 5.2)}" fill="${back ? '#c4709a' : '#f6c6da'}" stroke="#6a2848" stroke-width="1"/>`);
+      out.push(`<path d="${taper(pts, 8, 5.6)}" fill="${back ? 'url(#atb)' : 'url(#at)'}" stroke="${C.line}" stroke-width="1.1"/>`);
+      out.push(`<circle cx="${f1(tip[0])}" cy="${f1(tip[1])}" r="${f1(back ? 4.4 : 5.2)}" fill="${back ? C.bulb[0] : C.bulb[1]}" stroke="${C.line}" stroke-width="1"/>`);
       if (!back) out.push(`<circle cx="${f1(tip[0] - 1.6)}" cy="${f1(tip[1] - 1.8)}" r="1.5" fill="#ffffff" fill-opacity="0.7"/>`);
     }
     return out.join('');
   };
   const body =
     tent(0) +
-    `<path d="${column}" fill="url(#ac)" stroke="#4a1c14" stroke-width="1.6"/>${stripes.join('')}` +
-    `<ellipse cx="0" cy="${-discH + 1}" rx="32" ry="6" fill="#8a3442"/>` +
+    `<path d="${column}" fill="url(#ac)" stroke="${C.colLine}" stroke-width="1.6"/>${stripes.join('')}` +
+    `<ellipse cx="0" cy="${-discH + 1}" rx="32" ry="6" fill="${C.disc}"/>` +
     tent(1) +
     tent(2);
   return { width: 120, heights, overlap, defs, body };
@@ -266,4 +273,4 @@ function softcoral() {
   return { width: 100, heights, overlap, defs, body };
 }
 
-const PLANTS = { kelp, seagrass, anemone, softcoral };
+const PLANTS = { seawhip, seagrass, anemone, anemonegreen: () => anemone(1313, ANEMONE_GREEN), softcoral };

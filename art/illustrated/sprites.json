@@ -16,19 +16,20 @@
     "bubble-m.svg",
     "bubble-l.svg"
   ],
+  "caustics": "caustics.svg.mjs",
   "plants": [
     {
-      "id": "kelp",
+      "id": "seawhip",
       "segments": [
-        "kelp-1.svg.mjs",
-        "kelp-2.svg.mjs",
-        "kelp-3.svg.mjs",
-        "kelp-4.svg.mjs",
-        "kelp-5.svg.mjs",
-        "kelp-6.svg.mjs"
+        "seawhip-1.svg.mjs",
+        "seawhip-2.svg.mjs",
+        "seawhip-3.svg.mjs",
+        "seawhip-4.svg.mjs",
+        "seawhip-5.svg.mjs",
+        "seawhip-6.svg.mjs"
       ],
       "overlap": 6,
-      "sway": 0.05
+      "sway": 0.045
     },
     {
       "id": "seagrass",
@@ -60,6 +61,16 @@
       ],
       "overlap": 6,
       "sway": 0.03
+    },
+    {
+      "id": "anemonegreen",
+      "segments": [
+        "anemonegreen-1.svg.mjs",
+        "anemonegreen-2.svg.mjs",
+        "anemonegreen-3.svg.mjs"
+      ],
+      "overlap": 8,
+      "sway": 0.035
     }
   ],
   "creatures": {
@@ -196,19 +207,35 @@
         }
       ]
     },
-    "neon": {
+    "chromis": {
       "parts": [
         {
-          "file": "neon.tail.svg",
+          "file": "chromis.tail.svg",
           "anim": "wag",
           "pivot": [
             19,
-            14
+            17
           ],
           "amp": 0.3
         },
         {
-          "file": "neon.body.svg"
+          "file": "chromis.body.svg"
+        }
+      ]
+    },
+    "anthias": {
+      "parts": [
+        {
+          "file": "anthias.tail.svg",
+          "anim": "wag",
+          "pivot": [
+            22,
+            20
+          ],
+          "amp": 0.3
+        },
+        {
+          "file": "anthias.body.svg"
         }
       ]
     },
