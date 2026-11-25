@@ -28,7 +28,7 @@ npm install
 | `npm run launch -- <options>` | Starts the screensaver on the Roku now, with the dev options below |
 | `npm run settings` | Opens the Settings screen on the Roku |
 | `npm run shot -- <name>` | Saves a Roku screenshot to `out/screens/<name>.jpg` |
-| `npm run logs` | Streams the Roku's BrightScript console (Ctrl-C to stop) |
+| `npm run logs` | Streams the Roku's BrightScript console (Ctrl-C to stop). Add `-- --screensaver` for the screensaver's debugger (port 8087), where screensaver errors appear |
 | `npm run console -- "<command>" [seconds]` | Runs a debug-console command on the Roku, for example `chanperf -r 2` (CPU), `r2d2_bitmaps` (texture memory) or `fps_display 1` (frame-rate overlay) |
 | `npm run zip` | Builds the release zip at `out/reef-tank.zip` |
 | `npm run package` | Builds a signed `.pkg` for the Channel Store (see [STORE.md](STORE.md)) |
@@ -107,6 +107,15 @@ These each cost real debugging time:
   `fps_display 1` and the `off=` option.
 - **Every loaded image costs width × height × 4 bytes**, whatever its file format. A full-screen
   splash alone is 8.4 MB.
+- **A screensaver's errors go to port 8087,** not the usual console on 8085. In a sideloaded
+  build, a BrightScript error pauses the screensaver in the debugger on that port, which looks
+  like a frozen screen. Read it with `npm run logs -- --screensaver`.
+- **The real settings path can't be launched remotely.** `npm run settings` and the preview open
+  the Settings screen through the dev build's `Main()`. Roku's own **Change screensaver settings**
+  menu calls `RunScreenSaverSettings()` instead, so check that path from the TV's menus too.
+- **A release build has no `Main()`.** Roku opens every app right after sideloading it, so a
+  sideloaded release build sits on its splash color until you press Home. It runs from
+  **Settings › Theme › Screensavers**.
 - **The simulator isn't the device.** brs-engine is excellent for fast iteration and for things
   like the burn-in audit, but it mirrors images (a Roku doesn't), its timing differs in places, and
   it doesn't show GPU limits. Check visual changes on a real Roku.

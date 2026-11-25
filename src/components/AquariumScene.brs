@@ -87,6 +87,11 @@ sub init()
         setupVisitors()
     end if
     setupLighting()
+    ' Tells Roku the tank is built; certification measures launch time with it (3.2), and Static
+    ' Analysis looks for this call. Roku only registers it when the tank is opened as an app (dev
+    ' builds); as a screensaver it logs "not reachable", which is harmless. Settings scenes can't
+    ' send it at all ("invalid beacon").
+    m.top.signalBeacon("AppLaunchComplete")
     ' Dev builds: `stats=1` prints a count of every node type once the tank is built.
     if m.dev.stats <> invalid
         m.statsTimer = m.top.createChild("Timer")

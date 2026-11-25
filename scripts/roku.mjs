@@ -6,7 +6,9 @@
 //   node scripts/roku.mjs launch [k=v ...]     start the dev channel over ECP, args go to Main()
 //   node scripts/roku.mjs key <Key> [...]      send ECP keypresses (Home, Select, Down, Back, ...)
 //   node scripts/roku.mjs shot [name]          save a screenshot to out/screens/<name>.jpg
-//   node scripts/roku.mjs logs [seconds]       stream the BrightScript console (port 8085)
+//   node scripts/roku.mjs logs [seconds] [--screensaver]
+//                                              stream the BrightScript console (port 8085), or
+//                                              the screensaver debugger (port 8087)
 //   node scripts/roku.mjs console <cmd> [secs] run a debug-server command (port 8080), e.g. chanperf
 //   node scripts/roku.mjs package              deploy release build and sign it (needs genkey)
 //
@@ -107,7 +109,7 @@ const commands = {
   },
 
   async logs() {
-    await stream(8085, Number(args[0] ?? 0));
+    await stream(flags.has('--screensaver') ? 8087 : 8085, Number(args[0] ?? 0));
   },
 
   async console() {
