@@ -1,0 +1,42 @@
+{
+  "id": "shrimp",
+  "kind": "creature",
+  "w": 114,
+  "h": 60,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "legs",
+      "file": "shrimp.legs.png",
+      "anim": "wag",
+      "amp": 0.12,
+      "pivot": [
+        50.0,
+        41.3
+      ],
+      "frames": [
+        "shrimp.legs.A.png",
+        "shrimp.legs.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "shrimp.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "antennae",
+      "file": "shrimp.antennae.png",
+      "anim": "wag",
+      "amp": 0.25,
+      "pivot": [
+        83.2,
+        33.7
+      ],
+      "frames": [
+        "shrimp.antennae.A.png",
+        "shrimp.antennae.B.png"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": "manta",
+  "kind": "creature",
+  "w": 504,
+  "h": 324,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "farwing",
+      "file": "manta.farwing.png",
+      "anim": "wag",
+      "amp": 0.2,
+      "pivot": [
+        310.5,
+        134.9
+      ],
+      "frames": [
+        "manta.farwing.A.png",
+        "manta.farwing.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "manta.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "nearwing",
+      "file": "manta.nearwing.png",
+      "anim": "wag",
+      "amp": 0.2,
+      "pivot": [
+        197.6,
+        194.4
+      ],
+      "frames": [
+        "manta.nearwing.A.png",
+        "manta.nearwing.B.png"
+      ]
+    }
+  ]
+}

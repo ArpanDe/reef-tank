@@ -1,0 +1,37 @@
+{
+  "id": "jellyfish",
+  "kind": "creature",
+  "w": 162,
+  "h": 306,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "tentacles",
+      "file": "jellyfish.tentacles.png",
+      "anim": "wag",
+      "amp": 0.07,
+      "pivot": [
+        80.1,
+        62.4
+      ],
+      "frames": [
+        "jellyfish.tentacles.A.png",
+        "jellyfish.tentacles.B.png"
+      ]
+    },
+    {
+      "name": "bell",
+      "file": "jellyfish.bell.png",
+      "anim": "pulse",
+      "amp": 0.06,
+      "pivot": [
+        80.1,
+        45.5
+      ],
+      "frames": [
+        "jellyfish.bell.A.png",
+        "jellyfish.bell.B.png"
+      ]
+    }
+  ]
+}

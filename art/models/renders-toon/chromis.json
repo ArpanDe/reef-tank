@@ -1,0 +1,28 @@
+{
+  "id": "chromis",
+  "kind": "creature",
+  "w": 72,
+  "h": 36,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "tail",
+      "file": "chromis.tail.png",
+      "anim": "sweep",
+      "amp": 0.45,
+      "pivot": [
+        20.2,
+        19.1
+      ],
+      "frames": [
+        "chromis.tail.A.png",
+        "chromis.tail.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "chromis.body.png",
+      "anim": "none"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "hermitcrab",
+  "kind": "creature",
+  "w": 102,
+  "h": 96,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "legs",
+      "file": "hermitcrab.legs.png",
+      "anim": "wag",
+      "amp": 0.15,
+      "pivot": [
+        67.8,
+        59.3
+      ],
+      "frames": [
+        "hermitcrab.legs.A.png",
+        "hermitcrab.legs.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "hermitcrab.body.png",
+      "anim": "none"
+    }
+  ]
+}

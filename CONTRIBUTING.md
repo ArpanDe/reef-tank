@@ -34,6 +34,7 @@ The last one turns on Roku's frame-rate overlay; take a screenshot, then turn it
    - If you touched the backdrops, scrolling, light cycle or night lighting, the preview's
      **Burn-in audit** still passes ([docs/BURN-IN.md](docs/BURN-IN.md)).
    - If you can, check it on a real Roku; the simulator doesn't show everything (see the guide).
+   CI runs the build on every pull request and fails on warnings or a package over 4 MB.
 3. Keep within the [performance budget](docs/PERFORMANCE.md): under 20 MB of texture memory per
    style (`npm run art` prints it), under 50 running Animations (`npm run launch -- stats=1`), and
    no new large semi-transparent layers without measuring their frame-rate cost.
@@ -41,4 +42,8 @@ The last one turns on Roku's frame-rate overlay; take a screenshot, then turn it
 ## Art
 
 New creatures, plants or styles are welcome. Follow the spec in [art/README.md](art/README.md).
-All art must be original: no traced or adapted assets from other screensavers, films or games.
+All three styles come from one set of 3D models built in code in `art/models/`; changing them needs
+[Blender](https://www.blender.org/download/) 5.2 or newer (`npm run models`, then `npm run art`).
+Commit the updated renders in `art/models/renders*/` with your change, so others can build without
+Blender. All art must be original: no traced or adapted assets from other screensavers, films or
+games, and no downloaded models or textures.

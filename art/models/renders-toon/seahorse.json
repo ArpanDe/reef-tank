@@ -1,0 +1,28 @@
+{
+  "id": "seahorse",
+  "kind": "creature",
+  "w": 84,
+  "h": 204,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "fin",
+      "file": "seahorse.fin.png",
+      "anim": "sweep",
+      "amp": 0.35,
+      "pivot": [
+        20.2,
+        111.4
+      ],
+      "frames": [
+        "seahorse.fin.A.png",
+        "seahorse.fin.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "seahorse.body.png",
+      "anim": "none"
+    }
+  ]
+}

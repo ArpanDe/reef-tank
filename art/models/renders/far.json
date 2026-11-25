@@ -1,0 +1,9 @@
+{
+  "id": "far",
+  "kind": "backdrop",
+  "layer": "far",
+  "file": "far.png",
+  "w": 2556,
+  "h": 600,
+  "supersample": 1
+}

@@ -1,0 +1,10 @@
+{
+  "id": "seagrass",
+  "kind": "plant",
+  "file": "seagrass.png",
+  "w": 156,
+  "h": 246,
+  "supersample": 2,
+  "segments": 3,
+  "sway": 0.07
+}

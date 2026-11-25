@@ -129,7 +129,7 @@ end function
 
 ' Adds the sprite's part posters to parent and their motion to the shared
 ' loop. Parts are cropped to their visible pixels, so each sits at x/y on the
-' creature's canvas. A part that moves (wag, pulse) hangs off its own joint:
+' creature's canvas. A part that moves (wag, pulse, sweep) hangs off its own joint:
 ' a Group placed exactly at the pivot (where a tail meets the body), with the
 ' poster offset relative to it, and the motion rotates or scales the joint
 ' around its own origin. On a real Roku (Ultra, OS 16), rotating the Poster
@@ -159,7 +159,7 @@ sub buildParts(parent as object, tint as string)
         if kind = invalid or m.still then kind = "none"
         m.partCount += 1
         id = m.uid + "p" + m.partCount.ToStr()
-        if kind = "wag" or kind = "pulse"
+        if kind = "wag" or kind = "pulse" or kind = "sweep"
             joint = parent.createChild("Group")
             joint.id = id + "j"
             joint.translation = [part.pivot[0], part.pivot[1]]
@@ -192,6 +192,16 @@ sub buildParts(parent as object, tint as string)
                 values.Push([1 + v, 1 - v])
             end for
             addInterp(loopAnim(), joint.id + ".scale", "vector2d", invalid, values)
+        else if kind = "sweep"
+            ' A fin swinging toward and away from the viewer, seen from the side:
+            ' it narrows toward its root twice per stroke. (Realistic style.)
+            amp = 0.4
+            if part.amp <> invalid then amp = part.amp
+            values = []
+            for each v in sineCycles(1 - amp / 2, amp / 2, 2 * cycles, Rnd(0))
+                values.Push([v, 1])
+            end for
+            addInterp(loopAnim(), joint.id + ".scale", "vector2d", invalid, values)
         else if kind = "frameA" or kind = "frameB"
             ' Both frames use the same phase so they never show together.
             flip = frameFlip(framePhase, cycles)
@@ -206,7 +216,7 @@ end sub
 function partPeriod(part as object) as float
     if part.period <> invalid then return part.period
     kind = part.anim
-    if kind = "wag"
+    if kind = "wag" or kind = "sweep"
         if m.isVisitor then return rand(1.8, 2.6)
         return rand(0.7, 1.1)
     else if kind = "pulse"

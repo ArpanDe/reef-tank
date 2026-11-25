@@ -1,0 +1,10 @@
+{
+  "id": "seawhip",
+  "kind": "plant",
+  "file": "seawhip.png",
+  "w": 156,
+  "h": 414,
+  "supersample": 2,
+  "segments": 6,
+  "sway": 0.04
+}

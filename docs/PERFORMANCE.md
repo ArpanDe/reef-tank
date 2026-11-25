@@ -24,49 +24,58 @@ devices and no current numbers are published, so treat them as a conservative fl
 
 | | Before optimizing | Now |
 |---|---|---|
-| Package, both styles | 7.5 MB | 1.9 MB |
-| Texture memory, illustrated (estimate: every texture) | 25.7 MB | 13.4 MB |
-| Texture memory, pixel art (estimate: every texture) | 28.3 MB | 19.6 MB |
+| Package, all styles | 7.5 MB (two styles) | 3.5 MB (three styles) |
+| Texture memory, realistic (estimate: every texture) | – | 13.5 MB |
+| Texture memory, illustrated (estimate: every texture) | 25.7 MB | 14.4 MB |
+| Texture memory, pixel art (estimate: every texture) | 28.3 MB | 17.9 MB |
 | Largest texture side | 2556 px | 1278 px |
 | Animation nodes at the default Fish setting | 213 | 58, of which 35 running |
 | Running Animations at Few / Lots | – | 18 / 45 |
 
 The build estimate counts every texture; a device only loads what's on screen.
 
-**On a Roku Ultra 4670X, Roku OS 16.0.4,** using the debug console (`npm run console`):
-`r2d2_bitmaps` for texture memory, `chanperf` for CPU, and `fps_display 1` for Roku's own
-frame-rate overlay (read from screenshots, three samples per case):
+**On a Roku Ultra 4670X, Roku OS 16.0.4,** with the art from the 3D models, using the debug console
+(`npm run console`): `r2d2_bitmaps` for texture memory, `chanperf` for CPU, and `fps_display 1`
+for Roku's own frame-rate overlay (read from screenshots, three samples per case, visitors off):
 
-| | Result |
-|---|---|
-| Texture memory actually loaded | illustrated 11.8 MB, pixel 17.9 MB |
-| CPU / process memory | 8–9% / ~20 MB |
-| Frame rate, illustrated, default fish, day | 41 → **49–52** fps |
-| Frame rate, illustrated, default fish, night | 40 → **48–49** fps |
-| Frame rate, pixel art, Lots, day | 37 → **45–46** fps |
+| | Realistic | Illustrated | Pixel art |
+|---|---|---|---|
+| Frame rate, default fish (Some), day | **51** fps | **49–51** fps | **49–50** fps |
+| Frame rate, default fish, night | **51–52** fps | **49** fps | **49** fps |
+| Frame rate, Lots, day | **48–49** fps | **46–47** fps | **45–46** fps |
+| Texture memory actually loaded | 11.9 MB | 12.2 MB | 15.7 MB |
+| CPU / process memory | 8–9% / ~20 MB | 8–9% / ~20 MB | 7–10% / ~20 MB |
 
-What each feature cost per frame, measured by switching it off with the dev-only `off=` launch
-option (pixel art, Lots): light rays ~6 fps, a second sunlight layer ~3, a full-screen night overlay
-~5, fish and critters together ~8, plants and bubbles nothing measurable. With everything off but
-the backdrop it runs at 60 fps. The CPU is nearly idle; the limit is the GPU blending large
-semi-transparent images.
+Texture memory is the most seen for the style's own images. Roku keeps images cached between
+launches, so it includes species that had swum by in earlier runs, an upper bound. With the
+earlier hand-drawn art the same device measured 49–52 fps (illustrated, default fish, day) and
+45–46 fps (pixel art, Lots, day), so moving to the 3D models didn't change the frame rate.
+
+What each feature cost per frame, measured with the hand-drawn art by switching it off with the
+dev-only `off=` launch option (pixel art, Lots): light rays ~6 fps, a second sunlight layer ~3, a
+full-screen night overlay ~5, fish and critters together ~8, plants and bubbles nothing measurable.
+With everything off but the backdrop it runs at 60 fps. The CPU is nearly idle; the limit is the
+GPU blending large semi-transparent images.
 
 Not yet measured: a basic Roku such as a Roku Express. Reports welcome.
 
 ## How the build stays small
 
-The art is procedurally generated at **build time** by `npm run art` and shipped as images.
-Generating it on the Roku instead would cost the same texture memory once drawn, plus slow
-BrightScript drawing at startup. The build then optimizes what it ships:
+The art is generated ahead of time (3D models rendered by Blender with `npm run models`, then
+`npm run art`) and shipped as images. Drawing it on the Roku instead would cost the same texture
+memory once drawn, plus slow BrightScript drawing at startup, and the Roku has no 3D or vector
+renderer for screensavers anyway. The build then optimizes what it ships:
 
 - **Sprites are cropped** to their visible pixels, with offsets in `theme.json`.
 - **Hidden rows are trimmed.** The build measures, for every pixel column, how far up each layer in
   front is solid, and drops the rows of the layers behind it that can never be seen.
-- **Soft textures are stored small** (illustrated style: far layer at ½, light rays at ¼, sunlight
-  net at ½) and stretched back by the Poster. Pixel art stays full size to stay crisp.
+- **Soft textures are stored small** (realistic and illustrated: far layer at ½, light rays at ¼,
+  sunlight net at ½) and stretched back by the Poster. Pixel art stays full size to stay crisp.
 - **Wide textures are split** into pieces under 2048 px.
-- **Files are compressed:** palette PNGs where that's lossless (pixel art) or within a tight error
-  bound (illustrated); JPEG for the opaque Settings preview and store icons.
+- **Files are compressed:** pixel art as lossless palette PNGs (it uses one 160-color palette);
+  realistic and illustrated textures as 256-color palette PNGs when the average error stays under
+  5/255 (invisible at screen size, and about 30% smaller); JPEG for the opaque Settings preview and
+  store icons. All three styles fit in about 3.5 MB of the 4 MB package limit.
 - **No splash image.** A full-screen splash stayed loaded at 8.4 MB, so the manifest only sets
   `splash_color`.
 

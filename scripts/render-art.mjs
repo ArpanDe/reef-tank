@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Renders art/<style>/ into src/images/themes/<style>/*.png + theme.json, plus review images in out/.
-// Usage: node scripts/render-art.mjs [illustrated] [pixel]   (default: both)
+// Usage: node scripts/render-art.mjs [illustrated] [pixel] [photo]   (default: all)
 // The format is documented in art/README.md.
 
 import fs from 'node:fs';
@@ -13,7 +13,7 @@ import sharp from 'sharp';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const artDir = path.join(root, 'art');
 const outReview = path.join(root, 'out');
-const STYLES = ['illustrated', 'pixel'];
+const STYLES = ['illustrated', 'pixel', 'photo'];
 const requested = process.argv.slice(2);
 const styles = requested.length ? requested : STYLES;
 
@@ -141,6 +141,416 @@ async function loadSource(style, file, ctx) {
 
 const baseName = (file) => path.basename(file).replace(/\.(svg\.mjs|px\.mjs|svg|txt|png)$/, '');
 
+
+// ---------- styles made from the 3D model renders (art/models/renders) ----------
+//
+// Realistic ("photo"): each render is scaled to its final size with a Lanczos filter.
+// Pixel: each render becomes 6-px cells. Rather than averaging each cell (which muddies edges
+// and turns small bright details grey), every source pixel is snapped to one palette shared by
+// the whole style, and each cell takes its most common color, weighted by alpha. Edges stay
+// crisp, flat colors stay pure, and every texture uses the same colors. Creatures and plants
+// get a darkened outline on their silhouette ("selective outline"), and see-through art
+// (bubbles, jellyfish) keeps a few alpha levels instead of a hard cut.
+
+let MODELS_DIR = path.join(artDir, 'models', 'renders');
+
+function loadModelManifests() {
+  if (!fs.existsSync(MODELS_DIR)) throw new Error(`missing ${path.relative(root, MODELS_DIR)}: run npm run models`);
+  const items = {};
+  for (const f of fs.readdirSync(MODELS_DIR).filter((n) => n.endsWith('.json'))) {
+    const m = JSON.parse(fs.readFileSync(path.join(MODELS_DIR, f), 'utf8'));
+    items[m.id] = m;
+  }
+  return items;
+}
+
+const readRender = (file) => decodePng(fs.readFileSync(path.join(MODELS_DIR, file)));
+
+const srgbToLinear = (c) => {
+  const v = c / 255;
+  return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+};
+
+function oklab(r, g, b) {
+  const R = srgbToLinear(r);
+  const G = srgbToLinear(g);
+  const B = srgbToLinear(b);
+  const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B);
+  const m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B);
+  const s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B);
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ];
+}
+
+// Pixel art reads better a little punchier than a photographic render.
+function punch(r, g, b, sat, contrast) {
+  const y = 0.299 * r + 0.587 * g + 0.114 * b;
+  const f = (c) => Math.max(0, Math.min(255, ((y + (c - y) * sat) - 128) * contrast + 128));
+  return [f(r), f(g), f(b)];
+}
+
+class Palette {
+  constructor(colors) {
+    this.rgb = colors;
+    this.lab = colors.map(([r, g, b]) => oklab(r, g, b));
+    this.cache = new Map();
+    this.darker = new Map();
+  }
+
+  nearest(r, g, b) {
+    const key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2);
+    let idx = this.cache.get(key);
+    if (idx !== undefined) return idx;
+    idx = this.nearestLab(oklab(r, g, b));
+    this.cache.set(key, idx);
+    return idx;
+  }
+
+  nearestLab([L, A, B]) {
+    let best = 0;
+    let bd = Infinity;
+    for (let i = 0; i < this.lab.length; i++) {
+      const [l, a, b] = this.lab[i];
+      const d = (l - L) ** 2 + (a - A) ** 2 + (b - B) ** 2;
+      if (d < bd) { bd = d; best = i; }
+    }
+    return best;
+  }
+
+  // A darker shade of palette color i, for outlines.
+  shade(i) {
+    if (!this.darker.has(i)) {
+      const [L, A, B] = this.lab[i];
+      let j = this.nearestLab([L * 0.62, A * 1.1, B * 1.1]);
+      if (j === i) j = this.nearestLab([L * 0.45, A, B]);
+      this.darker.set(i, j);
+    }
+    return this.darker.get(i);
+  }
+}
+
+// One palette for the whole style, from a sample of every texture (libimagequant, via sharp).
+async function stylePalette(images, opts) {
+  const samples = [];
+  for (const { img, weight } of images) {
+    const visible = img.width * img.height;
+    const want = Math.min(visible, 30000 * weight);
+    const stride = Math.max(1, Math.floor(visible / want));
+    for (let i = 0; i < visible; i += stride) {
+      const o = i * 4;
+      if (img.data[o + 3] < 128) continue;
+      samples.push(punch(img.data[o], img.data[o + 1], img.data[o + 2], opts.saturation, opts.contrast));
+    }
+  }
+  const side = Math.ceil(Math.sqrt(samples.length));
+  const buf = Buffer.alloc(side * side * 3);
+  samples.forEach((c, i) => buf.set(c.map(Math.round), i * 3));
+  const quant = await sharp(buf, { raw: { width: side, height: side, channels: 3 } })
+    .png({ palette: true, colours: opts.colors, dither: 0, effort: 10 })
+    .toBuffer();
+  // sharp only offers 2/4/16/256 colors, so merge its 256 down to the target count with a weighted
+  // k-means in OKLab, keeping the most central real color of each cluster.
+  const dec = PNG.sync.read(quant);
+  const freq = new Map();
+  for (let i = 0; i < dec.data.length; i += 4) {
+    const key = (dec.data[i] << 16) | (dec.data[i + 1] << 8) | dec.data[i + 2];
+    freq.set(key, (freq.get(key) ?? 0) + 1);
+  }
+  const cols = [...freq.entries()].map(([key, n]) => ({ rgb: [key >> 16, (key >> 8) & 255, key & 255], n }));
+  cols.forEach((c) => { c.lab = oklab(...c.rgb); });
+  const k = Math.min(opts.colors, cols.length);
+  if (k === cols.length) return new Palette(cols.map((c) => c.rgb));
+  const d2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
+  // Deterministic k-means++ seeding: most frequent color first, then the farthest (weighted).
+  cols.sort((a, b) => b.n - a.n);
+  const centers = [cols[0].lab.slice()];
+  while (centers.length < k) {
+    let best = null;
+    let bs = -1;
+    for (const c of cols) {
+      const s2 = c.n * Math.min(...centers.map((ct) => d2(ct, c.lab)));
+      if (s2 > bs) { bs = s2; best = c; }
+    }
+    centers.push(best.lab.slice());
+  }
+  const assign = new Int32Array(cols.length);
+  for (let it = 0; it < 20; it++) {
+    cols.forEach((c, i) => {
+      let bi = 0;
+      let bd = Infinity;
+      centers.forEach((ct, j) => { const d = d2(ct, c.lab); if (d < bd) { bd = d; bi = j; } });
+      assign[i] = bi;
+    });
+    const sum = centers.map(() => [0, 0, 0, 0]);
+    cols.forEach((c, i) => { const t = sum[assign[i]]; t[0] += c.lab[0] * c.n; t[1] += c.lab[1] * c.n; t[2] += c.lab[2] * c.n; t[3] += c.n; });
+    sum.forEach((t, j) => { if (t[3]) centers[j] = [t[0] / t[3], t[1] / t[3], t[2] / t[3]]; });
+  }
+  const chosen = centers.map((ct, j) => {
+    let bi = -1;
+    let bd = Infinity;
+    cols.forEach((c, i) => { if (assign[i] === j) { const d = d2(ct, c.lab); if (d < bd) { bd = d; bi = i; } } });
+    return bi;
+  }).filter((i) => i >= 0);
+  return new Palette([...new Set(chosen)].map((i) => cols[i].rgb));
+}
+
+// Share of an image's visible pixels that are see-through.
+function semiTransparency(img) {
+  let semi = 0;
+  let seen = 0;
+  for (let i = 3; i < img.data.length; i += 4) {
+    const a = img.data[i];
+    if (a > 8) { seen++; if (a < 230) semi++; }
+  }
+  return seen ? semi / seen : 0;
+}
+
+// src: a render; (w, h): its final size in px; k: cell size in final px. Returns the final image.
+function pixelate(src, w, h, k, pal, opts) {
+  return cellsImage(pixelCells(src, w, h, k, pal, opts), w, h, k, pal, opts);
+}
+
+// One palette color (or none) and an alpha per cell. See-through art (opts.softAlpha) keeps a few
+// alpha levels; everything else is cut hard at 50% coverage.
+function pixelCells(src, w, h, k, pal, opts) {
+  const cw = Math.round(w / k);
+  const ch = Math.round(h / k);
+  const sx = src.width / cw;
+  const sy = src.height / ch;
+  const soft = !!opts.softAlpha;
+  const idx = new Int32Array(cw * ch).fill(-1);
+  const alpha = new Uint8Array(cw * ch);
+  const counts = new Float32Array(pal.rgb.length);
+  for (let cy = 0; cy < ch; cy++) {
+    for (let cx = 0; cx < cw; cx++) {
+      counts.fill(0);
+      let cover = 0;
+      let n = 0;
+      const x0 = Math.round(cx * sx);
+      const x1 = Math.round((cx + 1) * sx);
+      const y0 = Math.round(cy * sy);
+      const y1 = Math.round((cy + 1) * sy);
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const o = (y * src.width + x) * 4;
+          const a = src.data[o + 3] / 255;
+          n++;
+          if (a <= 0.02) continue;
+          cover += a;
+          const [r, g, b] = punch(src.data[o], src.data[o + 1], src.data[o + 2], opts.saturation, opts.contrast);
+          counts[pal.nearest(r | 0, g | 0, b | 0)] += a;
+        }
+      }
+      const c = cover / n;
+      const lvl = soft ? Math.round(c * 3) / 3 : c >= 0.5 ? 1 : 0;
+      if (lvl <= 0) continue;
+      let best = 0;
+      for (let i = 1; i < counts.length; i++) if (counts[i] > counts[best]) best = i;
+      idx[cy * cw + cx] = best;
+      alpha[cy * cw + cx] = Math.round(lvl * 255);
+    }
+  }
+  // Clean up orphan pixels: a cell that matches none of its 8 neighbors takes the most common
+  // neighboring color, but only if that's a close shade (an eye or a spot is kept).
+  {
+    const before = Int32Array.from(idx);
+    for (let cy = 0; cy < ch; cy++) {
+      for (let cx = 0; cx < cw; cx++) {
+        const i = cy * cw + cx;
+        const c = before[i];
+        if (c < 0) continue;
+        const seen = new Map();
+        let same = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (!dx && !dy) continue;
+            const x = cx + dx;
+            const y = cy + dy;
+            if (x < 0 || y < 0 || x >= cw || y >= ch) continue;
+            const v = before[y * cw + x];
+            if (v < 0) continue;
+            if (v === c) same++;
+            seen.set(v, (seen.get(v) ?? 0) + 1);
+          }
+        }
+        if (same) continue;
+        let best = -1;
+        let bn = 2;
+        for (const [v, n] of seen) if (n > bn) { bn = n; best = v; }
+        if (best < 0) continue;
+        const [l1, a1, b1] = pal.lab[c];
+        const [l2, a2, b2] = pal.lab[best];
+        if ((l1 - l2) ** 2 + (a1 - a2) ** 2 + (b1 - b2) ** 2 < 0.1 ** 2) idx[i] = best;
+      }
+    }
+  }
+  return { cw, ch, idx, alpha };
+}
+
+// Turns cells into the final image. opts.outline darkens cells on the silhouette; opts.cover (a
+// mask of the creature's other parts) keeps outlines off edges another part covers, so only the
+// whole creature's outline is drawn.
+function cellsImage(c, w, h, k, pal, opts) {
+  const { cw, ch, alpha } = c;
+  const idx = Int32Array.from(c.idx);
+  if (opts.outline) {
+    const edge = [];
+    const open = (x, y) => x < 0 || y < 0 || x >= cw || y >= ch ||
+      (idx[y * cw + x] < 0 && !(opts.cover && opts.cover[y * cw + x]));
+    for (let cy = 0; cy < ch; cy++) {
+      for (let cx = 0; cx < cw; cx++) {
+        const i = cy * cw + cx;
+        if (idx[i] < 0 || alpha[i] < 255) continue;
+        if (open(cx - 1, cy) || open(cx + 1, cy) || open(cx, cy - 1) || open(cx, cy + 1)) edge.push(i);
+      }
+    }
+    for (const i of edge) idx[i] = pal.shade(idx[i]);
+  }
+  const cells = { width: cw, height: ch, data: new Uint8Array(cw * ch * 4) };
+  for (let i = 0; i < cw * ch; i++) {
+    if (idx[i] < 0) continue;
+    cells.data.set([...pal.rgb[idx[i]], alpha[i]], i * 4);
+  }
+  const out = upscale(cells, k);
+  return out.width === w && out.height === h ? out : crop(out, 0, 0, Math.min(w, out.width), Math.min(h, out.height));
+}
+
+// Water is stretched sideways by the engine, so only its rows matter: 6-px bands. It keeps its
+// own exact color per band rather than the shared palette, which has too few blues for a smooth
+// gradient (and dithering would be stretched into stripes).
+function pixelateWater(src, k, opts) {
+  const out = { width: src.width, height: src.height, data: new Uint8Array(src.data.length) };
+  for (let y0 = 0; y0 < src.height; y0 += k) {
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let n = 0;
+    for (let y = y0; y < Math.min(src.height, y0 + k); y++) {
+      for (let x = 0; x < src.width; x++) {
+        const o = (y * src.width + x) * 4;
+        r += src.data[o]; g += src.data[o + 1]; b += src.data[o + 2]; n++;
+      }
+    }
+    const c = punch(r / n, g / n, b / n, opts.saturation, opts.contrast).map(Math.round);
+    for (let y = y0; y < Math.min(src.height, y0 + k); y++) {
+      for (let x = 0; x < src.width; x++) out.data.set([...c, 255], (y * src.width + x) * 4);
+    }
+  }
+  return out;
+}
+
+// Builds the style's backdrop, bubbles, plants and creature parts from the model renders.
+async function buildFromModels(style, spec, k, makeAsset) {
+  // models.renders: which render set to use (relative to the repo), default art/models/renders.
+  MODELS_DIR = path.join(root, spec.models?.renders ?? 'art/models/renders');
+  const items = loadModelManifests();
+  const pixel = k > 1;
+  const opts = { saturation: 1.15, contrast: 1.06, colors: 160, ...(spec.models?.pixel ?? {}) };
+  const byKind = (kind) => Object.values(items).filter((m) => m.kind === kind);
+
+  // Everything the style will use: [file, final w, final h, kind].
+  const jobs = [];
+  for (const m of byKind('backdrop')) jobs.push({ file: m.file, w: m.w, h: m.h, kind: m.layer === 'water' ? 'water' : 'backdrop' });
+  for (const m of byKind('plant')) jobs.push({ file: m.file, w: m.w, h: m.h, kind: 'plant' });
+  for (const m of byKind('sprites')) for (const s of m.sprites) jobs.push({ file: s.file, w: s.w, h: s.h, kind: 'sprite' });
+  for (const m of byKind('creature')) {
+    for (const p of m.parts) {
+      const files = pixel && p.frames ? p.frames : [p.file];
+      for (const f of files) jobs.push({ file: f, w: m.w, h: m.h, kind: 'creature', creature: m, part: p.name });
+    }
+  }
+  const sources = new Map(jobs.map((j) => [j.file, readRender(j.file)]));
+
+  let pal = null;
+  if (pixel) {
+    pal = await stylePalette(jobs.filter((j) => j.kind !== 'water').map((j) => ({ img: sources.get(j.file), weight: j.kind === 'backdrop' ? 3 : 1 })), opts);
+  }
+  const images = new Map();
+  for (const j of jobs) {
+    if (j.kind === 'creature' && pixel) continue;
+    const src = sources.get(j.file);
+    let img;
+    if (!pixel) {
+      img = src.width === j.w && src.height === j.h ? src : await resize(src, j.w, j.h);
+    } else if (j.kind === 'water') {
+      img = pixelateWater(src, k, opts);
+    } else {
+      img = pixelate(src, j.w, j.h, k, pal, { ...opts, outline: j.kind === 'plant', softAlpha: j.kind === 'sprite' });
+    }
+    images.set(j.file, img);
+  }
+  if (pixel) {
+    // Creatures: cut all parts into cells first, so each part's outline can skip the edges another
+    // part covers (where the tail meets the body, a fin over the body). See-through creatures (a
+    // jellyfish) keep alpha levels; a see-through fin on a solid fish is cut hard.
+    for (const m of byKind('creature')) {
+      const mine = jobs.filter((j) => j.creature === m);
+      const semi = mine.reduce((acc, j) => acc + semiTransparency(sources.get(j.file)), 0) / mine.length;
+      const o = { ...opts, softAlpha: semi > 0.5 };
+      const cells = new Map(mine.map((j) => [j.file, pixelCells(sources.get(j.file), m.w, m.h, k, pal, o)]));
+      for (const j of mine) {
+        const c = cells.get(j.file);
+        const cover = new Uint8Array(c.cw * c.ch);
+        for (const other of mine) {
+          if (other.part === j.part) continue;
+          const oc = cells.get(other.file);
+          for (let i = 0; i < cover.length; i++) if (oc.idx[i] >= 0) cover[i] = 1;
+        }
+        images.set(j.file, cellsImage(c, m.w, m.h, k, pal, { ...o, outline: true, cover }));
+      }
+    }
+  }
+  const asset = (file) => makeAsset(file.replace(/\.png$/, ''), images.get(file));
+
+  const backdrop = {};
+  for (const m of byKind('backdrop')) backdrop[m.layer] = asset(m.file);
+
+  const bubbles = byKind('sprites').flatMap((m) => m.sprites).filter((s) => s.name.startsWith('bubble'))
+    .sort((a, b) => a.w - b.w).map((s) => asset(s.file));
+
+  const plants = [];
+  for (const m of byKind('plant').sort((a, b) => a.id.localeCompare(b.id))) {
+    const img = images.get(m.file);
+    const n = m.segments;
+    const step = pixel ? k : 1;
+    const hb = Math.max(step, Math.round(m.h / n / step) * step);
+    const overlap = 6;
+    const segments = [];
+    for (let i = 0; i < n; i++) {
+      const top = i === n - 1 ? 0 : Math.max(0, m.h - (i + 1) * hb);
+      const bottom = Math.min(m.h, m.h - i * hb + (i > 0 ? overlap : 0));
+      if (bottom - top <= overlap) break;
+      segments.push(makeAsset(`${m.id}-${i + 1}`, crop(img, 0, top, m.w, bottom - top)));
+    }
+    plants.push({ id: m.id, overlap, sway: m.sway, segments });
+  }
+
+  const creatures = {};
+  for (const m of byKind('creature')) {
+    const parts = [];
+    for (const p of m.parts) {
+      if (pixel && p.frames) {
+        parts.push({ ...asset(p.frames[0]), anim: 'frameA', pivot: p.pivot ?? [m.w / 2, m.h / 2] });
+        parts.push({ ...asset(p.frames[1]), anim: 'frameB', pivot: p.pivot ?? [m.w / 2, m.h / 2] });
+      } else {
+        const part = { ...asset(p.file), anim: pixel ? 'none' : p.anim ?? 'none', pivot: p.pivot ?? [m.w / 2, m.h / 2] };
+        if (!pixel && p.amp !== undefined) part.amp = p.amp;
+        if (!pixel && p.period !== undefined) part.period = p.period;
+        parts.push(part);
+      }
+    }
+    creatures[m.id] = parts;
+  }
+  if (pal) {
+    fs.mkdirSync(outReview, { recursive: true });
+    fs.writeFileSync(path.join(outReview, `art-${style}-palette.json`), JSON.stringify(pal.rgb));
+  }
+  return { backdrop, bubbles, plants, creatures, palette: pal ? pal.rgb.length : 0 };
+}
+
 // ---------- theme build ----------
 
 async function buildStyle(style) {
@@ -173,10 +583,21 @@ async function buildStyle(style) {
     return a;
   }
 
+  // Styles made from the 3D models take their art from art/models/renders instead.
+  function makeAsset(name, img) {
+    if (names.has(name)) throw new Error(`[${style}] two images named ${name}`);
+    names.set(name, name);
+    return { name, img, w: img.width, h: img.height, png: encodePng(img) };
+  }
+  const models = spec.models ? await buildFromModels(style, spec, k, makeAsset) : null;
+  if (models?.palette) console.log(`[${style}] pixel palette: ${models.palette} colors`);
+
   const backdrop = {};
   for (const key of ['water', 'far', 'reef', 'floor']) {
-    if (!spec.backdrop?.[key]) { warn(style, `backdrop.${key} missing`); continue; }
-    const a = await asset(spec.backdrop[key]);
+    if (models) {
+      if (!models.backdrop[key]) { warn(style, `backdrop.${key} missing (npm run models -- ${key})`); continue; }
+    } else if (!spec.backdrop?.[key]) { warn(style, `backdrop.${key} missing`); continue; }
+    const a = models ? models.backdrop[key] : await asset(spec.backdrop[key]);
     if (key !== 'water') {
       if (a.w !== BACKDROP_WIDTH) warn(style, `backdrop.${key} is ${a.w}px wide, expected ${BACKDROP_WIDTH}`);
       if (a.h > BACKDROP_MAX_H[key]) warn(style, `backdrop.${key} is ${a.h}px tall, max ${BACKDROP_MAX_H[key]}`);
@@ -186,15 +607,17 @@ async function buildStyle(style) {
 
   const ray = spec.ray ? await asset(spec.ray) : (warn(style, 'ray missing'), null);
   const caustics = spec.caustics ? await asset(spec.caustics) : (warn(style, 'caustics missing'), null);
-  const bubbles = [];
-  for (const f of spec.bubbles ?? []) bubbles.push(await asset(f));
+  const bubbles = models ? models.bubbles : [];
+  if (!models) for (const f of spec.bubbles ?? []) bubbles.push(await asset(f));
   if (!bubbles.length) warn(style, 'no bubbles');
 
-  const plants = [];
-  for (const p of spec.plants ?? []) {
-    const segments = [];
-    for (const f of p.segments) segments.push(await asset(f));
-    plants.push({ id: p.id, overlap: p.overlap ?? 0, sway: p.sway ?? 0.05, segments });
+  const plants = models ? models.plants : [];
+  if (!models) {
+    for (const p of spec.plants ?? []) {
+      const segments = [];
+      for (const f of p.segments) segments.push(await asset(f));
+      plants.push({ id: p.id, overlap: p.overlap ?? 0, sway: p.sway ?? 0.05, segments });
+    }
   }
   if (plants.length < 3) warn(style, `only ${plants.length} plant types (want 3+)`);
 
@@ -202,10 +625,10 @@ async function buildStyle(style) {
   const visitors = [];
   const critters = [];
   for (const [id, behavior] of Object.entries(species)) {
-    const c = spec.creatures?.[id];
-    if (!c) { warn(style, `no art for creature "${id}"`); continue; }
-    const parts = [];
-    for (const p of c.parts) {
+    const c = models ? null : spec.creatures?.[id];
+    if (models ? !models.creatures[id] : !c) { warn(style, `no art for creature "${id}"`); continue; }
+    const parts = models ? models.creatures[id] : [];
+    for (const p of c?.parts ?? []) {
       const a = await asset(p.file);
       const part = { ...a, anim: p.anim ?? 'none', pivot: (p.pivot ?? [a.w / k / 2, a.h / k / 2]).map((v) => v * k) };
       if (p.amp !== undefined) part.amp = p.amp;
@@ -490,32 +913,41 @@ async function resize(img, w, h) {
   return { width: info.width, height: info.height, data: new Uint8Array(data) };
 }
 
-// Palette PNG if it's lossless (exact) or close enough (meanErr / maxErr per channel), else a
-// maximally compressed truecolor PNG.
+// Pixel art: a palette PNG, which is lossless (its colors already come from one palette).
+// Smooth styles: a 256-color palette PNG (libimagequant at quality 90, lightly dithered) when its
+// average error on visible pixels stays within PALETTE_MEAN_ERR levels per channel, which is
+// invisible at screen size and ~30% smaller than truecolor; otherwise a truecolor PNG.
+const PALETTE_MEAN_ERR = 5;
+
 async function encodeTexture(img, exact) {
   const raw = () => sharp(Buffer.from(img.data), { raw: { width: img.width, height: img.height, channels: 4 } });
   const full = await raw().png({ compressionLevel: 9, adaptiveFiltering: true, effort: 10 }).toBuffer();
   let pal;
   try {
-    pal = await raw().png({ palette: true, quality: 100, effort: 10, dither: exact ? 0 : 0.6, compressionLevel: 9 }).toBuffer();
+    pal = exact
+      ? await raw().png({ palette: true, quality: 100, effort: 10, dither: 0, compressionLevel: 9 }).toBuffer()
+      : await raw().png({ palette: true, quality: 90, effort: 10, dither: 0.8, compressionLevel: 9 }).toBuffer();
   } catch {
     return { buf: full, palette: false };
   }
   if (pal.length >= full.length) return { buf: full, palette: false };
   const back = PNG.sync.read(pal).data;
   let sum = 0;
+  let n = 0;
   let max = 0;
   for (let i = 0; i < img.data.length; i += 4) {
     const a = img.data[i + 3];
-    for (let c = 0; c < 4; c++) {
-      if (c < 3 && a === 0) continue;
+    const ea = Math.abs(a - back[i + 3]);
+    if (ea > max) max = ea;
+    if (a === 0) continue;
+    for (let c = 0; c < 3; c++) {
       const e = Math.abs(img.data[i + c] - back[i + c]);
       sum += e;
+      n++;
       if (e > max) max = e;
     }
   }
-  const mean = sum / (img.data.length);
-  const ok = exact ? max === 0 : mean <= 0.8 && max <= 24;
+  const ok = exact ? max === 0 : n === 0 || sum / n <= PALETTE_MEAN_ERR;
   return ok ? { buf: pal, palette: true } : { buf: full, palette: false };
 }
 
@@ -685,7 +1117,7 @@ async function buildStoreImages(theme) {
 
 let failed = false;
 for (const style of styles) {
-  if (!STYLES.includes(style)) { console.error(`Unknown style "${style}"`); process.exit(1); }
+  if (!fs.existsSync(path.join(artDir, style, 'sprites.json'))) { console.error(`Unknown style "${style}"`); process.exit(1); }
   try {
     const theme = await buildStyle(style);
     if (style === 'illustrated') await buildStoreImages(theme);

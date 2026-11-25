@@ -1,0 +1,28 @@
+{
+  "id": "anthias",
+  "kind": "creature",
+  "w": 84,
+  "h": 42,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "tail",
+      "file": "anthias.tail.png",
+      "anim": "sweep",
+      "amp": 0.45,
+      "pivot": [
+        23.4,
+        21.6
+      ],
+      "frames": [
+        "anthias.tail.A.png",
+        "anthias.tail.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "anthias.body.png",
+      "anim": "none"
+    }
+  ]
+}

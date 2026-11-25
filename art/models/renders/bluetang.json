@@ -1,0 +1,42 @@
+{
+  "id": "bluetang",
+  "kind": "creature",
+  "w": 240,
+  "h": 138,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "tail",
+      "file": "bluetang.tail.png",
+      "anim": "sweep",
+      "amp": 0.45,
+      "pivot": [
+        52.8,
+        73.6
+      ],
+      "frames": [
+        "bluetang.tail.A.png",
+        "bluetang.tail.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "bluetang.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "fin",
+      "file": "bluetang.fin.png",
+      "anim": "sweep",
+      "amp": 0.5,
+      "pivot": [
+        183.5,
+        76.9
+      ],
+      "frames": [
+        "bluetang.fin.A.png",
+        "bluetang.fin.B.png"
+      ]
+    }
+  ]
+}

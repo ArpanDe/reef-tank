@@ -4,3 +4,6 @@ out/
 src/images/themes/
 src/images/store/
 .claude/worktrees/
+
+# Python bytecode from the Blender model scripts
+__pycache__/

@@ -1,0 +1,42 @@
+{
+  "id": "turtle",
+  "kind": "creature",
+  "w": 402,
+  "h": 282,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "rear",
+      "file": "turtle.rear.png",
+      "anim": "wag",
+      "amp": 0.3,
+      "pivot": [
+        63.8,
+        153.3
+      ],
+      "frames": [
+        "turtle.rear.A.png",
+        "turtle.rear.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "turtle.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "front",
+      "file": "turtle.front.png",
+      "anim": "wag",
+      "amp": 0.28,
+      "pivot": [
+        234.9,
+        182.3
+      ],
+      "frames": [
+        "turtle.front.A.png",
+        "turtle.front.B.png"
+      ]
+    }
+  ]
+}

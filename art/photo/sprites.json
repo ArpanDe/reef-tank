@@ -1,0 +1,7 @@
+{
+  "_doc": "Realistic style: made from the 3D models in art/models (rendered to art/models/renders by npm run models), scaled to final size. Light rays and caustics are shared with the illustrated style.",
+  "bandScale": { "far": 0.5, "mid": 0.75, "near": 1 },
+  "models": {},
+  "ray": "../illustrated/ray.svg",
+  "caustics": "../illustrated/caustics.svg.mjs"
+}

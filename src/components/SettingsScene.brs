@@ -33,5 +33,10 @@ end sub
 sub updatePreview()
     style = m.prefs.style
     m.preview.uri = "pkg:/images/themes/" + style + "/preview.jpg"
-    if style = "pixel" then m.caption.text = "Pixel art style" else m.caption.text = "Illustrated style"
+    for each item in prefsSchema()
+        if item.key = "style"
+            i = prefsIndexOf(item.values, style)
+            if i >= 0 then m.caption.text = item.names[i] + " style"
+        end if
+    end for
 end sub

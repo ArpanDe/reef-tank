@@ -1,0 +1,42 @@
+{
+  "id": "yellowtang",
+  "kind": "creature",
+  "w": 192,
+  "h": 180,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "tail",
+      "file": "yellowtang.tail.png",
+      "anim": "sweep",
+      "amp": 0.45,
+      "pivot": [
+        40.6,
+        98.7
+      ],
+      "frames": [
+        "yellowtang.tail.A.png",
+        "yellowtang.tail.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "yellowtang.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "fin",
+      "file": "yellowtang.fin.png",
+      "anim": "sweep",
+      "amp": 0.5,
+      "pivot": [
+        141.2,
+        101.2
+      ],
+      "frames": [
+        "yellowtang.fin.A.png",
+        "yellowtang.fin.B.png"
+      ]
+    }
+  ]
+}

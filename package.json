@@ -21,7 +21,8 @@
     "console": "node scripts/roku.mjs console",
     "zip": "npm run build && node scripts/roku.mjs zip --release",
     "package": "npm run build && node scripts/roku.mjs package",
-    "preview": "npm run build && node scripts/roku.mjs zip && node scripts/preview-server.mjs"
+    "preview": "npm run build && node scripts/roku.mjs zip && node scripts/preview-server.mjs",
+    "models": "node scripts/models.mjs"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",

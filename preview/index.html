@@ -28,7 +28,7 @@
   <header>
     <h1>Reef Tank</h1>
     <label>Style
-      <select id="style"><option value="illustrated">Illustrated</option><option value="pixel">Pixel art</option></select>
+      <select id="style"><option value="illustrated">Illustrated</option><option value="photo">Realistic</option><option value="pixel">Pixel art</option></select>
     </label>
     <label>Scrolling
       <select id="scroll"><option value="1">Slow</option><option value="2">Medium</option><option value="3">Fast</option></select>
@@ -111,7 +111,19 @@
     const THRESHOLD = 12;        // minimum change per channel, out of 255
     const SAMPLE_MS = 250;
 
+    let auditing = false;
+
     async function audit() {
+      if (auditing) return;
+      auditing = true;
+      try {
+        await auditRun();
+      } finally {
+        auditing = false;
+      }
+    }
+
+    async function auditRun() {
       const panel = document.getElementById('auditPanel');
       const text = document.getElementById('auditText');
       panel.hidden = false;
@@ -207,7 +219,9 @@
         { debugToConsole: true, showStats: false }
       );
       for (const id of ['style', 'scroll', 'fish', 'hour', 'clock', 'visitor']) {
-        document.getElementById(id).addEventListener('change', () => run('screensaver'));
+        // Changing a control restarts the screensaver, but not during an audit: that restart would
+        // replace the audit's deterministic-only launch and the audit would sample the wrong run.
+        document.getElementById(id).addEventListener('change', () => { if (!auditing) run('screensaver'); });
       }
       document.getElementById('restart').addEventListener('click', () => run('screensaver'));
       document.getElementById('settings').addEventListener('click', () => run('settings'));

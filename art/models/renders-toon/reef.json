@@ -1,0 +1,9 @@
+{
+  "id": "reef",
+  "kind": "backdrop",
+  "layer": "reef",
+  "file": "reef.png",
+  "w": 2556,
+  "h": 534,
+  "supersample": 1
+}

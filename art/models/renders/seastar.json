@@ -1,0 +1,23 @@
+{
+  "id": "seastar",
+  "kind": "creature",
+  "w": 114,
+  "h": 108,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "body",
+      "file": "seastar.body.png",
+      "anim": "pulse",
+      "amp": 0.025,
+      "pivot": [
+        60.3,
+        63.7
+      ],
+      "frames": [
+        "seastar.body.A.png",
+        "seastar.body.B.png"
+      ]
+    }
+  ]
+}

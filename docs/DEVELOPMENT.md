@@ -5,6 +5,11 @@
 You need [Node.js](https://nodejs.org/) 20 or newer. For on-device work you also need a Roku in
 Developer Mode, with its address and password in `.env` (see the [README](../README.md#install-it-on-your-roku)).
 
+To change the 3D models behind the art styles you also need
+[Blender](https://www.blender.org/download/) 5.2 or newer (`npm run models` looks for it in
+`$BLENDER`, then `~/.local/opt/blender-*/`, then on your `PATH`). You don't need Blender to build:
+the rendered images are committed in `art/models/renders/`.
+
 ```bash
 npm install
 ```
@@ -14,7 +19,8 @@ npm install
 | Command | What it does |
 |---|---|
 | `npm run preview` | Builds, then runs the real dev build in your browser at <http://localhost:6502> using [brs-engine](https://github.com/lvcabral/brs-engine). No Roku needed. Page controls switch style, scrolling, fish, time of day, clock and visitors; **Save frame** writes the current frame to `out/screens/`; **Burn-in audit** runs the [burn-in test](BURN-IN.md). In the Settings screen, arrows move, Enter is OK, Escape is Back |
-| `npm run art` | Renders `art/` into the images and `theme.json` the screensaver loads, plus review images in `out/` |
+| `npm run models -- [ids]` | Renders the 3D models in `art/models/` with Blender, realistic into `art/models/renders/` and cel-shaded into `art/models/renders-toon/` (all of them, or just the ids or modules named, e.g. `clownfish` or `critters`). Add `--samples 32 --review out/models` for quick drafts with review images |
+| `npm run art` | Builds all three styles into the images and `theme.json` the screensaver loads, plus review images in `out/`: Realistic from the realistic renders, Illustrated and Pixel from the cel-shaded ones |
 | `npm run lint` | Compiles and lints all BrightScript (BrighterScript + bslint) |
 | `npm run build` | `art` + `lint` |
 | `npm run deploy` | Builds and sideloads a **dev build** to the Roku in `.env` |
@@ -36,7 +42,7 @@ controls.
 
 | Option | Effect |
 |---|---|
-| `style=illustrated\|pixel`, `scroll=1\|2\|3`, `fish=8\|14\|22`, `clock=off\|12\|24`, `lighting=auto\|day\|night`, `visitors=on\|off` | Override the saved settings |
+| `style=illustrated\|photo\|pixel`, `scroll=1\|2\|3`, `fish=8\|14\|22`, `clock=off\|12\|24`, `lighting=auto\|day\|night`, `visitors=on\|off` | Override the saved settings |
 | `hour=13` | Pretend it's this hour (0–24, decimals allowed) for the lighting |
 | `visitor=turtle\|manta\|jellyfish` | Bring in that visitor after 3 seconds, and again 15 seconds after each one leaves |
 | `mode=settings` | Open the Settings screen instead |
@@ -55,6 +61,11 @@ npm run launch -- style=pixel fish=22 hour=23 clock=12 visitor=turtle
 
 ```
 art/                  art sources, the art spec (art/README.md), creature behavior (species.json)
+art/models/           Blender scripts that build every creature, plant and reef layer in 3D
+art/models/renders/   realistic renders: the Realistic (photo) style
+art/models/renders-toon/  cel-shaded renders: the Illustrated and Pixel styles
+art/<style>/          per-style settings (sprites.json), light ray and caustics
+scripts/models.mjs    runs Blender on art/models/render.py
 scripts/render-art.mjs  turns art/ into device textures + theme.json, and review images in out/
 scripts/roku.mjs      deploy, launch, screenshots, logs, debug console, packaging
 scripts/preview-server.mjs, preview/  the in-browser preview
@@ -71,9 +82,10 @@ src/components/       SceneGraph components
   the next destination when a swim, turn or walk finishes.
 - **`BubbleField`**, **`LightRays`** and **`ClockOverlay`** are the other ambient pieces.
   **`SettingsScene`** edits the preferences, which are saved in the registry (`prefs.brs`).
-- **Art** is a contract between `art/<style>/sprites.json` (images and how they animate) and
-  `art/species.json` (behavior). See [art/README.md](../art/README.md) to add creatures, plants or
-  a whole new style.
+- **Art** comes from one set of 3D models (`art/models/`), rendered realistic and cel-shaded.
+  render-art scales the realistic renders for Realistic and the cel renders for Illustrated, and
+  down-rezzes the cel renders to 6-px cells with one shared palette for Pixel. Behavior is in
+  `art/species.json`. See [art/README.md](../art/README.md) to add creatures, plants or a style.
 
 ## Roku behaviors worth knowing
 

@@ -1,0 +1,9 @@
+{
+  "id": "water",
+  "kind": "backdrop",
+  "layer": "water",
+  "file": "water.png",
+  "w": 8,
+  "h": 1080,
+  "supersample": 1
+}

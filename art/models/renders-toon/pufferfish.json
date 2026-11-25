@@ -1,0 +1,42 @@
+{
+  "id": "pufferfish",
+  "kind": "creature",
+  "w": 174,
+  "h": 132,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "tail",
+      "file": "pufferfish.tail.png",
+      "anim": "sweep",
+      "amp": 0.45,
+      "pivot": [
+        40.6,
+        62.8
+      ],
+      "frames": [
+        "pufferfish.tail.A.png",
+        "pufferfish.tail.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "pufferfish.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "fin",
+      "file": "pufferfish.fin.png",
+      "anim": "sweep",
+      "amp": 0.6,
+      "pivot": [
+        123.8,
+        59.8
+      ],
+      "frames": [
+        "pufferfish.fin.A.png",
+        "pufferfish.fin.B.png"
+      ]
+    }
+  ]
+}

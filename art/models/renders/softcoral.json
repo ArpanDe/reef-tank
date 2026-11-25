@@ -1,0 +1,10 @@
+{
+  "id": "softcoral",
+  "kind": "plant",
+  "file": "softcoral.png",
+  "w": 156,
+  "h": 276,
+  "supersample": 2,
+  "segments": 4,
+  "sway": 0.03
+}

@@ -1,0 +1,42 @@
+{
+  "id": "crab",
+  "kind": "creature",
+  "w": 120,
+  "h": 72,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "legs",
+      "file": "crab.legs.png",
+      "anim": "wag",
+      "amp": 0.06,
+      "pivot": [
+        60.4,
+        37.9
+      ],
+      "frames": [
+        "crab.legs.A.png",
+        "crab.legs.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "crab.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "claws",
+      "file": "crab.claws.png",
+      "anim": "wag",
+      "amp": 0.08,
+      "pivot": [
+        63.0,
+        41.6
+      ],
+      "frames": [
+        "crab.claws.A.png",
+        "crab.claws.B.png"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": "angelfish",
+  "kind": "creature",
+  "w": 192,
+  "h": 216,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "tail",
+      "file": "angelfish.tail.png",
+      "anim": "sweep",
+      "amp": 0.45,
+      "pivot": [
+        44.4,
+        113.6
+      ],
+      "frames": [
+        "angelfish.tail.A.png",
+        "angelfish.tail.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "angelfish.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "fin",
+      "file": "angelfish.fin.png",
+      "anim": "sweep",
+      "amp": 0.5,
+      "pivot": [
+        140.8,
+        117.9
+      ],
+      "frames": [
+        "angelfish.fin.A.png",
+        "angelfish.fin.B.png"
+      ]
+    }
+  ]
+}

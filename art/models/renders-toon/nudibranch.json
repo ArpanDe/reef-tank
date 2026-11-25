@@ -1,0 +1,28 @@
+{
+  "id": "nudibranch",
+  "kind": "creature",
+  "w": 126,
+  "h": 48,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "body",
+      "file": "nudibranch.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "gills",
+      "file": "nudibranch.gills.png",
+      "anim": "pulse",
+      "amp": 0.08,
+      "pivot": [
+        60.3,
+        27.4
+      ],
+      "frames": [
+        "nudibranch.gills.A.png",
+        "nudibranch.gills.B.png"
+      ]
+    }
+  ]
+}

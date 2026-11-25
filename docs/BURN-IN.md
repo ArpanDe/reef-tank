@@ -31,10 +31,12 @@ Latest results, at the slowest Scrolling setting:
 
 | Style | Lighting | Result | Half of pixels changed by | Slowest pixel changed after |
 |---|---|---|---|---|
-| Illustrated | Day | PASS | 0 min 28 s | 2 min 25 s |
-| Illustrated | Night | PASS | 1 min 30 s | 2 min 20 s |
-| Pixel art | Day | PASS | 0 min 17 s | 2 min 23 s |
-| Pixel art | Night | PASS | 0 min 22 s | 1 min 58 s |
+| Realistic | Day | PASS | 0 min 20 s | 2 min 16 s |
+| Realistic | Night | PASS | 0 min 25 s | 1 min 51 s |
+| Illustrated | Day | PASS | 0 min 20 s | 2 min 14 s |
+| Illustrated | Night | PASS | 0 min 37 s | 1 min 57 s |
+| Pixel art | Day | PASS | 0 min 25 s | 2 min 13 s |
+| Pixel art | Night | PASS | 0 min 33 s | 1 min 52 s |
 
 These are measured in the simulator, not on a Roku. The motions are the same `Animation` nodes on a
 device; the simulator just lets every pixel be sampled.

@@ -1,0 +1,42 @@
+{
+  "id": "clownfish",
+  "kind": "creature",
+  "w": 174,
+  "h": 102,
+  "supersample": 2,
+  "parts": [
+    {
+      "name": "tail",
+      "file": "clownfish.tail.png",
+      "anim": "sweep",
+      "amp": 0.45,
+      "pivot": [
+        42.4,
+        55.6
+      ],
+      "frames": [
+        "clownfish.tail.A.png",
+        "clownfish.tail.B.png"
+      ]
+    },
+    {
+      "name": "body",
+      "file": "clownfish.body.png",
+      "anim": "none"
+    },
+    {
+      "name": "fin",
+      "file": "clownfish.fin.png",
+      "anim": "sweep",
+      "amp": 0.5,
+      "pivot": [
+        130.8,
+        59.5
+      ],
+      "frames": [
+        "clownfish.fin.A.png",
+        "clownfish.fin.B.png"
+      ]
+    }
+  ]
+}

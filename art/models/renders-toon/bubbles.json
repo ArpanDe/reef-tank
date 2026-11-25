@@ -1,0 +1,25 @@
+{
+  "id": "bubbles",
+  "kind": "sprites",
+  "supersample": 2,
+  "sprites": [
+    {
+      "name": "bubble-s",
+      "file": "bubble-s.png",
+      "w": 18,
+      "h": 18
+    },
+    {
+      "name": "bubble-m",
+      "file": "bubble-m.png",
+      "w": 30,
+      "h": 30
+    },
+    {
+      "name": "bubble-l",
+      "file": "bubble-l.png",
+      "w": 42,
+      "h": 36
+    }
+  ]
+}

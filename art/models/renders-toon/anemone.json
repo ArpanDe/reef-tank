@@ -1,0 +1,10 @@
+{
+  "id": "anemone",
+  "kind": "plant",
+  "file": "anemone.png",
+  "w": 156,
+  "h": 198,
+  "supersample": 2,
+  "segments": 3,
+  "sway": 0.05
+}
