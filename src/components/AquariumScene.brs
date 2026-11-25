@@ -4,17 +4,23 @@
 ' Burn-in protection: two deterministic motions make sure every pixel keeps
 ' changing, regardless of where the (random) fish and bubbles happen to be:
 '   1. Parallax scroll. The far, reef and floor+plants layers slide left forever
-'      at different speeds (each layer is two seamless tiles side by side).
+'      at speeds 1:2:4 (each layer is two seamless tiles side by side).
 '   2. Light cycle. Every lightSeconds a faint bright veil fades in and out,
-'      then a faint dark veil. A pixel with channel value c moves by at least
+'      then a faint dark veil (one Rectangle, "veil", changing color while
+'      invisible). A pixel with channel value c moves by at least
 '      max(brighten * (255 - c), darken * c), about 16/255 or more, so no pixel
-'      holds its value through a cycle. The veils sit above the night overlay, so
+'      holds its value through a cycle. The veil sits above the night overlay, so
 '      this holds day and night.
+'
+' Performance: Roku's own tests saw cheap devices lag at 20-50 concurrent
+' Animation nodes, so scene-wide motion is packed into a few Animations with
+' many interpolators (one for all scrolling, one for all plants, one for the
+' light cycle, one for the caustics).
 ' The burn-in audit in the browser preview (npm run preview) measures this.
 
 function burnInConfig() as object
     return {
-        scrollFar: 5, scrollReef: 10, scrollFront: 16, ' px/s at the "Slow" setting
+        scrollFar: 4, scrollReef: 8, scrollFront: 16, ' px/s at "Slow"; keep 1:2:4 so one Animation drives all three
         lightSeconds: 300, brighten: 0.12, darken: 0.15
     }
 end function
@@ -59,15 +65,39 @@ sub init()
         m.rays.config = { ray: m.theme.ray }
         m.top.findNode("bubbles").config = {
             bubbles: m.theme.bubbles,
-            floorY: 1080 - m.floorH * 0.5,
-            vents: [rand(0, m.tileW), rand(0, m.tileW)],
-            tileW: m.tileW,
+            floorY: 1080 - m.floorCover + 12,
             speed: m.frontSpeed
         }
         if m.prefs.clock <> "off" then m.top.findNode("clock").format = m.prefs.clock
         setupVisitors()
     end if
     setupLighting()
+    ' Dev builds: `stats=1` prints a count of every node type once the tank is built.
+    if m.dev.stats <> invalid
+        m.statsTimer = m.top.createChild("Timer")
+        m.statsTimer.duration = 3
+        m.statsTimer.observeField("fire", "printStats")
+        m.statsTimer.control = "start"
+    end if
+end sub
+
+sub printStats()
+    counts = {}
+    countNodes(m.top, counts)
+    print "STATS "; FormatJson(counts)
+end sub
+
+sub countNodes(node as object, counts as object)
+    kind = node.subtype()
+    if counts[kind] = invalid then counts[kind] = 0
+    counts[kind] = counts[kind] + 1
+    if kind = "Animation" and node.state = "running"
+        if counts.runningAnimations = invalid then counts.runningAnimations = 0
+        counts.runningAnimations = counts.runningAnimations + 1
+    end if
+    for i = 0 to node.getChildCount() - 1
+        countNodes(node.getChild(i), counts)
+    end for
 end sub
 
 function loadTheme(style as string) as dynamic
@@ -88,55 +118,152 @@ sub buildBackdrop()
 
     speed = m.prefs.scroll.ToInt() * m.timescale
     m.frontSpeed = cfg.scrollFront * speed
-    m.floorH = 120
+    ' The front reef is solid from the bottom up to floorCover px everywhere:
+    ' plants root just below that line and bubbles start there.
+    m.floorCover = 120
+    if m.theme.floorCover <> invalid and m.theme.floorCover > 0 then m.floorCover = m.theme.floorCover
     m.tileW = 1920
-    if bd.floor <> invalid
-        m.floorH = bd.floor.h
-        m.tileW = bd.floor.w
-    end if
-    startScroll("farLayer", bd.far, cfg.scrollFar * speed, invalid)
-    startScroll("reefLayer", bd.reef, cfg.scrollReef * speed, invalid)
-    ' Plants are rooted in the floor, so they scroll in lockstep with it.
-    startScroll("floorLayer", bd.floor, m.frontSpeed, "plantsLayer")
-end sub
+    if bd.floor <> invalid then m.tileW = bd.floor.w
 
-' Lays two copies of a tiling layer side by side and slides the layer left by
-' one tile width per loop, forever. `follower` scrolls in lockstep.
-sub startScroll(layerId as string, a as dynamic, speed as float, follower as dynamic)
-    if a = invalid then return
-    layer = m.top.findNode(layerId)
-    for each x in [0, a.w]
-        poster = layer.createChild("Poster")
-        poster.uri = a.uri
-        poster.width = a.w
-        poster.height = a.h
-        poster.translation = [x, 1080 - a.h]
+    layers = [
+        { id: "farLayer", tile: bd.far, speed: cfg.scrollFar * speed, follower: invalid },
+        { id: "reefLayer", tile: bd.reef, speed: cfg.scrollReef * speed, follower: invalid },
+        { id: "floorLayer", tile: bd.floor, speed: m.frontSpeed, follower: "plantsLayer" } ' plants are rooted in the floor
+    ]
+    for each layer in layers
+        placeTiles(layer.id, layer.tile)
     end for
-    anim = newLoop(m.top, a.w / speed)
-    addInterp(anim, layerId + ".translation", "vector2d", [0.0, 1.0], [[0, 0], [-a.w, 0]])
-    if follower <> invalid then addInterp(anim, follower + ".translation", "vector2d", [0.0, 1.0], [[0, 0], [-a.w, 0]])
-    anim.control = "start"
+    startScrolling(layers)
 end sub
 
+' Two copies of a tiling layer side by side. Each copy may come in pieces
+' (chunks), since textures wider than 2048 px aren't safe on every Roku, and
+' sits `bottom` px above the screen bottom (rows always hidden behind the
+' layers in front were trimmed off at build time).
+sub placeTiles(layerId as string, tile as dynamic)
+    if tile = invalid then return
+    layer = m.top.findNode(layerId)
+    for each copyX in [0, tile.w]
+        for each chunk in tile.chunks
+            poster = layer.createChild("Poster")
+            poster.uri = chunk.uri
+            poster.width = chunk.w
+            poster.height = tile.h
+            poster.translation = [copyX + chunk.x, 1080 - tile.bottom - tile.h]
+        end for
+    end for
+end sub
+
+' Slides every layer left by its tile width, forever. When the speeds are in
+' whole-number ratios (1:2:4) and the tiles are the same width, a single
+' Animation drives them all: the faster layers just wrap several times per
+' loop (a jump of exactly one tile is invisible). Otherwise each layer gets
+' its own Animation.
+sub startScrolling(layers as object)
+    active = []
+    for each layer in layers
+        if layer.tile <> invalid and layer.speed > 0 then active.Push(layer)
+    end for
+    if active.Count() = 0 then return
+    slowest = active[0]
+    for each layer in active
+        if layer.speed < slowest.speed then slowest = layer
+    end for
+    period = slowest.tile.w / slowest.speed
+    shared = true
+    for each layer in active
+        c = layer.speed * period / layer.tile.w
+        if Abs(c - Int(c + 0.5)) > 0.001 then shared = false
+    end for
+    anim = invalid
+    if shared then anim = newLoop(m.top, period)
+    for each layer in active
+        cycles = 1
+        if shared
+            cycles = Int(layer.speed * period / layer.tile.w + 0.5)
+            target = anim
+        else
+            target = newLoop(m.top, layer.tile.w / layer.speed)
+        end if
+        saw = sawtooth(-layer.tile.w, cycles)
+        addInterp(target, layer.id + ".translation", "vector2d", saw.keys, saw.values)
+        if layer.follower <> invalid then addInterp(target, layer.follower + ".translation", "vector2d", saw.keys, saw.values)
+        if not shared then target.control = "start"
+    end for
+    if shared then anim.control = "start"
+end sub
+
+' Keys/values that move x from 0 to `distance` `cycles` times per loop.
+function sawtooth(distance as float, cycles as integer) as object
+    keys = []
+    values = []
+    for j = 0 to cycles - 1
+        keys.Append([j / cycles, (j + 1) / cycles - 0.0001])
+        values.Append([[0, 0], [distance, 0]])
+    end for
+    keys.Push(1.0)
+    values.Push([distance, 0])
+    return { keys: keys, values: values }
+end function
+
+' Plants are built straight into the scene (not as components) so that ONE
+' Animation can sway every plant: each plant is a chain of nested joint
+' Groups, and up to three joints per plant rotate with a phase lag, so the
+' sway builds up the stem. Each plant also has a twin one tile to the right,
+' swaying in step, so the scroll loop joins invisibly.
 sub buildPlants()
     plants = m.theme.plants
     if plants = invalid or plants.Count() = 0 then return
     layer = m.top.findNode("plantsLayer")
-    baseY = 1080 - m.floorH * 0.55
+    baseY = 1080 - m.floorCover + 24
+    m.plantSway = newLoop(m.top, 6.0)
     count = 7
     slot = m.tileW / count
     for i = 0 to count - 1
         kind = pickOne(plants)
         x = (i + rand(0.2, 0.8)) * slot
         y = baseY + rand(-6, 10)
-        period = rand(4.5, 7.5)
         phase = Rnd(0)
-        ' The same plant again one tile to the right, swaying in step, so the
-        ' scroll loop joins invisibly.
         for each offset in [0, m.tileW]
-            node = layer.createChild("Plant")
-            node.config = { plant: kind, x: x + offset, baseY: y, period: period, phase: phase, uid: nextUid("pl") }
+            buildPlant(layer, kind, x + offset, y, phase)
         end for
+    end for
+    m.plantSway.control = "start"
+end sub
+
+sub buildPlant(layer as object, plant as object, x as float, baseY as float, phase as float)
+    segments = plant.segments
+    n = segments.Count()
+    swayAt = [0, Int(n / 2), n - 1] ' joints that move; the rest ride along
+    if n <= 3 then swayAt = [0, 1, 2]
+    uid = nextUid("pl")
+    parent = layer
+    prevH = 0
+    for i = 0 to n - 1
+        seg = segments[i]
+        joint = parent.createChild("Group")
+        joint.id = uid + "j" + i.ToStr()
+        if i = 0
+            joint.translation = [x, baseY]
+        else
+            joint.translation = [0, -(prevH - plant.overlap)]
+        end if
+        poster = joint.createChild("Poster")
+        poster.uri = seg.uri
+        poster.width = seg.w
+        poster.height = seg.h
+        poster.translation = [-seg.w / 2, -seg.h]
+        moves = false
+        for each j in swayAt
+            if j = i then moves = true
+        end for
+        if moves
+            ' Upper joints bend more. Fewer joints move, so each bends more.
+            amp = plant.sway * (0.5 + 0.5 * i / (n - 1 + 0.0001)) * n / swayAt.Count()
+            addInterp(m.plantSway, joint.id + ".rotation", "float", invalid, sineCycles(0, amp, 1, phase - i * 0.07))
+        end if
+        prevH = seg.h
+        parent = joint
     end for
 end sub
 
@@ -149,9 +276,19 @@ sub setupBurnIn()
         up.Push(cfg.brighten * clamp(Sin(a), 0, 1))
         down.Push(cfg.darken * clamp(-Sin(a), 0, 1))
     end for
+    ' One veil: bright (white) for the first half of the cycle, dark (navy)
+    ' for the second. It switches color at the halfway point, when it's fully
+    ' transparent, so the switch can't be seen.
+    opacity = []
+    for k = 0 to 24
+        opacity.Push(up[k] + down[k])
+    end for
     light = newLoop(m.top, cfg.lightSeconds / m.timescale)
-    addInterp(light, "brighten.opacity", "float", invalid, up)
-    addInterp(light, "darken.opacity", "float", invalid, down)
+    addInterp(light, "veil.opacity", "float", invalid, opacity)
+    colors = light.createChild("ColorFieldInterpolator")
+    colors.key = [0.0, 0.4999, 0.5, 1.0]
+    colors.keyValue = [&hE6F7FFFF, &hE6F7FFFF, &h020812FF, &h020812FF]
+    colors.fieldToInterp = "veil.color"
     light.control = "start"
 end sub
 
@@ -179,26 +316,44 @@ sub setupCaustics()
     tex = m.theme.caustics
     if tex = invalid then return
     m.caustics = m.top.findNode("caustics")
+    ' The texture's canvas is stretched over the screen with a margin for
+    ' drifting. Only its visible part was kept at build time (fx/fy/fw/fh are
+    ' that part's place on the canvas, as fractions).
+    canvasW = 1920 + 240
+    canvasH = 1080 + 160
+    anim = newLoop(m.top, 45.0)
     ids = ["causticA", "causticB"]
     opacities = [0.10, 0.08]
-    periods = [37.0, 53.0]
     for i = 0 to 1
         poster = m.caustics.createChild("Poster")
         poster.id = ids[i]
         poster.uri = tex.uri
-        poster.width = 1920 + 240
-        poster.height = 1080 + 160
+        poster.width = canvasW * tex.fw
+        poster.height = canvasH * tex.fh
         poster.opacity = opacities[i]
-        poster.scaleRotateCenter = [poster.width / 2, poster.height / 2]
-        if i = 1 then poster.scale = [-1, 1]
+        fx = tex.fx
+        if i = 1
+            ' Mirrored, so the two nets never line up.
+            poster.scaleRotateCenter = [poster.width / 2, poster.height / 2]
+            poster.scale = [-1, 1]
+            fx = 1 - tex.fx - tex.fw
+        end if
+        ' Shifted down so the net fades in at the front reef's crown: caustics
+        ' belong on the reef and sand, and in open water they read as a grid.
+        base = [-120 + canvasW * fx, -80 + 260 + canvasH * tex.fy]
         path = []
         phase = Rnd(0) * 6.2831853
         for k = 0 to 24
             a = 6.2831853 * k / 24 + phase
-            path.Push([-120 + 100 * Sin(a), -80 + 60 * Sin(2 * a)])
+            if i = 0
+                path.Push([base[0] + 100 * Sin(a), base[1] + 60 * Sin(2 * a)])
+            else
+                path.Push([base[0] - 90 * Cos(a), base[1] + 50 * Sin(a)])
+            end if
         end for
-        addLoop(m.top, ids[i] + ".translation", "vector2d", path, periods[i])
+        addInterp(anim, ids[i] + ".translation", "vector2d", invalid, path)
     end for
+    anim.control = "start"
 end sub
 
 ' Critters walk on the front part of the reef floor: 2, 4 or 6 of them with
@@ -216,7 +371,7 @@ sub spawnCritters()
             uid: nextUid("cr"),
             depthScale: 1.0,
             tint: "0xFFFFFFFF",
-            bounds: [0, 1080 - m.floorH * 0.42, 1920, 1080 - 14],
+            bounds: [0, 1080 - 80, 1920, 1080 - 14], ' the front reef's bottom ledge
             floorSpeed: m.frontSpeed
         }
     end for
@@ -279,6 +434,7 @@ function createCreature(c as object, band as string) as object
     node.config = {
         spec: c,
         uid: nextUid("c"),
+        still: (band = "far"),
         depthScale: s,
         tint: tint,
         opacity: opacity,
@@ -307,7 +463,11 @@ sub updateLighting()
         n = nightAmount(currentHour())
     end if
     m.night.opacity = 0.5 * n
-    if m.caustics <> invalid then m.caustics.opacity = 1.0 - 0.85 * n
+    m.night.visible = n > 0.001 ' skip drawing a full-screen layer when it does nothing
+    if m.caustics <> invalid
+        m.caustics.opacity = 1.0 - 0.85 * n
+        m.caustics.visible = m.caustics.opacity > 0.05
+    end if
     if m.rays <> invalid
         m.rays.opacity = 1.0 - 0.8 * n
         if n > 0.5 then m.rays.tint = "0xB0C8FFFF" else m.rays.tint = "0xFFFFFFFF"

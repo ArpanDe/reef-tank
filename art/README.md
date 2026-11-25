@@ -8,6 +8,17 @@ plus a `theme.json` the Roku scene loads.
 All art is **original**. Draw generic real-world reef species in your own composition. Don't imitate
 the Aquatic Life / SereneScreen "Marine Aquarium" screensaver, or any film or game character.
 
+## What reaches the Roku
+
+You draw at full size; `render-art` writes optimized textures for the device: sprites cropped to
+their visible pixels, backdrop rows hidden behind solid layers in front trimmed off, soft textures
+(illustrated far layer, rays, caustics) stored smaller, wide textures split under 2048 px, and PNGs
+palette-compressed where that's lossless or visually identical. It prints the texture-memory and
+file-size totals for each style; keep each style under 20 MB of texture memory.
+
+**Keep the front reef (`floor`) fully opaque from the bottom up to its crown.** The build uses that
+solid region to drop the hidden parts of the layers behind it, so any see-through gap costs memory.
+
 ## Checking your work
 
 ```bash
@@ -32,8 +43,8 @@ The screen is 1920×1080. Back to front:
 5. mid fish
 6. plants (rooted just behind the floor)
 7. near fish
-8. `floor`: the reef floor strip, bottom-anchored, drawn in front of everything above
-9. critters, walking along the front part of the floor
+8. `floor`: the front reef, bottom-anchored, drawn in front of everything above
+9. critters, walking along the sand ledge at the front reef's base
 10. light rays, bubbles, visitors
 
 ### Backdrops tile and scroll
@@ -59,7 +70,7 @@ clusters with low stretches every ~700–1100 px, so open water keeps passing th
 | `water` | 8 × 1080 | Bright near the surface, deep blue at the bottom. Stretched horizontally. Keep it a smooth, steady gradient top to bottom (no flat bands) so vertical sway changes every row |
 | `far` | 2556 × ≤600 | Tiles. Low contrast, blue-shifted, like it's far away through water |
 | `reef` | 2556 × ≤540 | Tiles. A **healthy, crowded tropical reef**: rock ~85%+ covered by living coral, sponges, anemones and clams, in saturated colors. It may sit slightly darker and bluer than the floor for depth, but never desaturated. Pale, white or grey corals read as dead (bleached) coral, and big bare rock mounds read as tombstones: avoid both |
-| `floor` | 2556 × 200–280 | Tiles. A **coral garden on warm coral sand** (golden or cream, never grey gravel or pale bone-like fragments): coral heads, clams, sponges, anemones and zoanthid carpets, grouped in textured clusters rather than lone rounded domes. The top edge is irregular, with coral heads poking up. The **bottom ~45%** is the ground critters walk on, so keep it fairly low and horizontal (rubble, encrusting coral, sand pockets) with no tall objects; taller features belong in the upper part |
+| `floor` | 2556 × 360–440 | Tiles. The **front reef**: a massive wall of big, bold coral formations (brain and boulder corals 120–260 px, thickets 150–250 px tall, table corals 200–360 px wide, sponges, anemone beds, clams), **fully opaque from the bottom up to at least 280 px** (it always covers the bottom quarter of the screen), with an irregular crown rising to 360–440 px. Cave mouths and crevices are painted dark, never left transparent. The **bottom 90 px** is the ledge critters walk on: warm coral sand, low carpets and polyps, nothing taller than ~20 px. The most saturated and detailed layer after the fish |
 | `ray` | 360 × 1100 | One soft light shaft, **white** with alpha falloff (the engine tints it and sets opacity) |
 | `bubbles` | 3 files | Small, medium, large (illustrated ≈14/22/34 px) |
 | `caustics` | 960 × 540 | The dancing sunlight net on a shallow sea floor: thin, soft, wavy **white** lines in a cellular pattern, transparent elsewhere. The engine stretches two copies 2× over the tank at low opacity and drifts them past each other. Doesn't need to tile |

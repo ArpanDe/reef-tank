@@ -20,8 +20,23 @@ const routes = {
 };
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.zip': 'application/zip' };
 
+// POST /shot?name=foo with a PNG body saves out/screens/foo.png (the preview's "Save frame" button).
+function saveShot(req, res) {
+  const name = (new URL(req.url, 'http://x').searchParams.get('name') ?? `frame-${Date.now()}`).replace(/[^\w.-]/g, '_');
+  const chunks = [];
+  req.on('data', (c) => chunks.push(c));
+  req.on('end', () => {
+    const dir = path.join(root, 'out', 'screens');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, `${name}.png`);
+    fs.writeFileSync(file, Buffer.concat(chunks));
+    res.writeHead(200, { 'Content-Type': 'text/plain' }).end(path.relative(root, file));
+  });
+}
+
 http
   .createServer((req, res) => {
+    if (req.method === 'POST' && req.url.startsWith('/shot')) return saveShot(req, res);
     const file = routes[new URL(req.url, 'http://x').pathname];
     if (!file || !fs.existsSync(file)) {
       res.writeHead(404).end('not found');

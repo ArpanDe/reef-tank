@@ -32,6 +32,6 @@ end sub
 
 sub updatePreview()
     style = m.prefs.style
-    m.preview.uri = "pkg:/images/themes/" + style + "/preview.png"
+    m.preview.uri = "pkg:/images/themes/" + style + "/preview.jpg"
     if style = "pixel" then m.caption.text = "Pixel art style" else m.caption.text = "Illustrated style"
 end sub

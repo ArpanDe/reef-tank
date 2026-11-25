@@ -37,8 +37,26 @@ sub onConfig()
     m.turnInterp.fieldToInterp = m.uid + ".scale"
     if cfg.opacity <> invalid then m.top.opacity = cfg.opacity
 
+    ' All of this creature's looping motion (tails, fins, frames, school wobble)
+    ' runs in ONE Animation, m.loop, of period m.loopPeriod. Roku's own tests
+    ' show cheap devices lagging at ~20-50 concurrent Animation nodes, so we
+    ' never give each part its own. Far-away fish (cfg.still) don't animate
+    ' their parts at all: at half size, tinted, nobody can see a tail wag.
     school = 0
     if cfg.schoolSize <> invalid then school = cfg.schoolSize
+    m.still = (cfg.still = true)
+    m.loop = invalid
+    m.partPeriods = []
+    longest = 0.0
+    for each part in m.spec.parts
+        d = partPeriod(part)
+        m.partPeriods.Push(d)
+        if d > longest then longest = d
+    end for
+    m.loopPeriod = longest
+    if school > 1 then m.loopPeriod = rand(2.5, 4.5) ' the members' wobble period
+    if m.loopPeriod <= 0 then m.loopPeriod = 1.0
+
     if school > 1
         for i = 0 to school - 1
             member = m.top.createChild("Group")
@@ -47,20 +65,23 @@ sub onConfig()
             offset = [rand(-1, 1) * m.w * (0.8 + school * 0.08), rand(-1, 1) * m.h * (1.0 + school * 0.1)]
             member.translation = offset
             buildParts(member, cfg.tint)
-            ' Each member wanders a little inside the formation.
-            wobble = []
-            ax = rand(0.1, 0.25) * m.w
-            ay = rand(0.15, 0.35) * m.h
-            phase = rand(0, 6.28)
-            for k = 0 to 8
-                a = 6.2831853 * k / 8 + phase
-                wobble.Push([offset[0] + ax * Sin(a), offset[1] + ay * Sin(2 * a)])
-            end for
-            addLoop(m.top, member.id + ".translation", "vector2d", wobble, rand(2.5, 4.5))
+            if not m.still
+                ' Each member wanders a little inside the formation.
+                wobble = []
+                ax = rand(0.1, 0.25) * m.w
+                ay = rand(0.15, 0.35) * m.h
+                phase = rand(0, 6.28)
+                for k = 0 to 8
+                    a = 6.2831853 * k / 8 + phase
+                    wobble.Push([offset[0] + ax * Sin(a), offset[1] + ay * Sin(2 * a)])
+                end for
+                addInterp(loopAnim(), member.id + ".translation", "vector2d", invalid, wobble)
+            end if
         end for
     else
         buildParts(m.top, cfg.tint)
     end if
+    if m.loop <> invalid then m.loop.control = "start"
 
     if m.isVisitor
         startVisit()
@@ -75,48 +96,74 @@ sub onConfig()
     end if
 end sub
 
-' Adds the sprite's part posters to parent and starts their loops.
+' The creature's shared loop Animation, created on first use.
+function loopAnim() as object
+    if m.loop = invalid then m.loop = newLoop(m.top, m.loopPeriod)
+    return m.loop
+end function
+
+' Adds the sprite's part posters to parent and their motion to the shared
+' loop. Parts are cropped to their visible pixels, so each sits at x/y on the
+' creature's canvas and pivots are converted to the part's own coordinates.
+' A part that wants a shorter period than the loop repeats several times per
+' loop (cycles), so everything still fits in one Animation.
 sub buildParts(parent as object, tint as string)
-    frameAnim = invalid
-    flip = frameFlip(rand(0.05, 0.45))
-    for each part in m.spec.parts
+    framePhase = rand(0.05, 0.45)
+    for i = 0 to m.spec.parts.Count() - 1
+        part = m.spec.parts[i]
         poster = parent.createChild("Poster")
         m.partCount += 1
         poster.id = m.uid + "p" + m.partCount.ToStr()
         poster.uri = part.uri
         poster.width = part.w
         poster.height = part.h
+        poster.translation = [part.x, part.y]
         poster.blendColor = tint
         kind = part.anim
+        if kind = invalid or m.still then kind = "none"
+        if part.anim = "frameB" then poster.opacity = 0
+        cycles = 1
+        if m.partPeriods[i] > 0 then cycles = Int(m.loopPeriod / m.partPeriods[i] + 0.5)
+        if cycles < 1 then cycles = 1
+        pivot = [part.pivot[0] - part.x, part.pivot[1] - part.y]
         if kind = "wag"
             amp = 0.3
             if part.amp <> invalid then amp = part.amp
-            poster.scaleRotateCenter = part.pivot
-            addLoop(m.top, poster.id + ".rotation", "float", sineValues(0, amp, 13, Rnd(0)), partPeriod(part, 0.7, 1.1, 1.8, 2.6))
+            poster.scaleRotateCenter = pivot
+            addInterp(loopAnim(), poster.id + ".rotation", "float", invalid, sineCycles(0, amp, cycles, Rnd(0)))
         else if kind = "pulse"
             amp = 0.08
             if part.amp <> invalid then amp = part.amp
-            poster.scaleRotateCenter = part.pivot
+            poster.scaleRotateCenter = pivot
             values = []
-            for each v in sineValues(0, amp, 13, Rnd(0))
+            for each v in sineCycles(0, amp, cycles, Rnd(0))
                 values.Push([1 + v, 1 - v])
             end for
-            addLoop(m.top, poster.id + ".scale", "vector2d", values, partPeriod(part, 2.0, 2.8, 2.0, 2.8))
+            addInterp(loopAnim(), poster.id + ".scale", "vector2d", invalid, values)
         else if kind = "frameA" or kind = "frameB"
-            ' Both frames share one Animation so they never show together.
-            if frameAnim = invalid then frameAnim = newLoop(m.top, partPeriod(part, 0.45, 0.6, 1.0, 1.4))
+            ' Both frames use the same phase so they never show together.
+            flip = frameFlip(framePhase, cycles)
             if kind = "frameA" then values = flip.a else values = flip.b
             poster.opacity = values[0]
-            addInterp(frameAnim, poster.id + ".opacity", "float", flip.keys, values)
+            addInterp(loopAnim(), poster.id + ".opacity", "float", flip.keys, values)
         end if
     end for
-    if frameAnim <> invalid then frameAnim.control = "start"
 end sub
 
-function partPeriod(part as object, fishLo as float, fishHi as float, visitorLo as float, visitorHi as float) as float
+' How long one cycle of this part's motion wants to take, in seconds.
+function partPeriod(part as object) as float
     if part.period <> invalid then return part.period
-    if m.isVisitor then return rand(visitorLo, visitorHi)
-    return rand(fishLo, fishHi)
+    kind = part.anim
+    if kind = "wag"
+        if m.isVisitor then return rand(1.8, 2.6)
+        return rand(0.7, 1.1)
+    else if kind = "pulse"
+        return rand(2.0, 2.8)
+    else if kind = "frameA" or kind = "frameB"
+        if m.isVisitor then return rand(1.0, 1.4)
+        return rand(0.45, 0.6)
+    end if
+    return 0.0
 end function
 
 sub nextMove()
@@ -248,9 +295,13 @@ end sub
 ' without restarting a node from its own "stopped" callback.
 sub startCrawling(cfg as object)
     m.floorSpeed = cfg.floorSpeed
-    m.crawlAnims = [m.moveAnim, m.top.findNode("moveAnim2")]
-    interp2 = m.top.findNode("moveInterp2")
+    ' A second move Animation, only critters need (see the comment above).
+    anim2 = m.top.createChild("Animation")
+    anim2.id = "moveAnim2"
+    anim2.repeat = false
+    interp2 = anim2.createChild("Vector2DFieldInterpolator")
     interp2.fieldToInterp = m.uid + ".translation"
+    m.crawlAnims = [m.moveAnim, anim2]
     m.crawlInterps = [m.moveInterp, interp2]
     for each anim in m.crawlAnims
         anim.easeFunction = "linear"

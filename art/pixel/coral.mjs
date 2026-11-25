@@ -58,7 +58,7 @@ export function kit(c, { H, seed = 1, tint = (col) => col }) {
   // bounding box of a mask (columns stored as wrapped offsets around a centre)
   function cellsOf(m, cx) {
     const out = [];
-    for (let y = 0; y < H; y++) for (let dx = -60; dx <= 60; dx++) { const x = cx + dx; if (m.get(x, y)) out.push([x, y]); }
+    for (let y = 0; y < H; y++) for (let dx = -70; dx <= 70; dx++) { const x = cx + dx; if (m.get(x, y)) out.push([x, y]); }
     return out;
   }
 
@@ -77,6 +77,10 @@ export function kit(c, { H, seed = 1, tint = (col) => col }) {
       let yy = 0; while (yy < 8 && inM(x, y - yy - 1)) yy++;
       const right = !inM(x + 1, y), left = !inM(x - 1, y), below = !inM(x, y + 1);
       let v = yy === 0 ? 0 : yy < 3 ? 0.8 : 1.2;
+      if (o.vol) { // big rounded forms: light from the upper left across the whole volume
+        const nx = wdx(x, o.vol[0]) / o.vol[2], ny = (y - o.vol[1]) / o.vol[3];
+        v = Math.max(yy === 0 ? 0 : 0.25, 1 + (nx * 0.5 + ny * 0.9) * 1.1);
+      }
       if (right || below) v += 0.8; if (left) v -= 0.4;
       v += (mot(x, y) - 0.5) * 0.6;
       let q = Math.floor(v); if (v - q > dither(x, y)) q++;

@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
 import { PNG } from 'pngjs';
+import sharp from 'sharp';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const artDir = path.join(root, 'art');
@@ -23,7 +24,7 @@ delete species._doc;
 const SCREEN = { w: 1920, h: 1080 };
 // Backdrops tile horizontally: the scene scrolls them forever, so the right edge must flow into the left.
 const BACKDROP_WIDTH = 2556;
-const BACKDROP_MAX_H = { far: 600, reef: 540, floor: 280 };
+const BACKDROP_MAX_H = { far: 600, reef: 540, floor: 440 };
 const BAND_Y = { far: [180, 640], mid: [160, 760], near: [220, 820] };
 
 let warnings = 0;
@@ -167,8 +168,7 @@ async function buildStyle(style) {
     if (names.has(name) && names.get(name) !== file) throw new Error(`[${style}] ${file} and ${names.get(name)} both output ${name}.png`);
     names.set(name, file);
     const png = encodePng(img);
-    fs.writeFileSync(path.join(outDir, `${name}.png`), png);
-    const a = { uri: `pkg:/images/themes/${style}/${name}.png`, w: img.width, h: img.height, png };
+    const a = { name, img, w: img.width, h: img.height, png };
     cache.set(file, a);
     return a;
   }
@@ -223,6 +223,7 @@ async function buildStyle(style) {
   const theme = {
     style,
     pixelated: k > 1,
+    floorCover: backdrop.floor ? solidCover(backdrop.floor.img) : 0,
     bandScale: spec.bandScale ?? { far: 0.5, mid: 0.75, near: 1 },
     backdrop,
     ray,
@@ -233,8 +234,7 @@ async function buildStyle(style) {
     visitors,
     critters,
   };
-  const json = JSON.stringify(theme, (key, v) => (key === 'png' ? undefined : v), 1);
-  fs.writeFileSync(path.join(outDir, 'theme.json'), json);
+  const stats = await exportDevice(style, theme, outDir);
 
   fs.mkdirSync(outReview, { recursive: true });
   const sheet = renderSvg(sheetSvg(theme), { pixelated: theme.pixelated });
@@ -243,10 +243,12 @@ async function buildStyle(style) {
   fs.writeFileSync(path.join(outReview, `art-${style}-scene-full.png`), encodePng(renderSvg(mock, { pixelated: theme.pixelated })));
   const half = encodePng(renderSvg(mock, { width: 960 }));
   fs.writeFileSync(path.join(outReview, `art-${style}-scene.png`), half);
-  fs.writeFileSync(path.join(outDir, 'preview.png'), half); // shown on the Settings screen
+  // Shown on the Settings screen. Opaque, so JPEG is far smaller than PNG.
+  fs.writeFileSync(path.join(outDir, 'preview.jpg'), await sharp(half).jpeg({ quality: 85, mozjpeg: true }).toBuffer());
   fs.writeFileSync(path.join(outReview, `art-${style}-seams.png`), encodePng(renderSvg(seamsSvg(theme), { pixelated: theme.pixelated })));
   theme.mockSvg = mock;
   console.log(`[${style}] ${cache.size} images, ${fish.length} fish, ${visitors.length} visitors, ${critters.length} critters, ${plants.length} plants -> src/images/themes/${style}/`);
+  reportBudget(style, stats);
   return theme;
 }
 
@@ -364,18 +366,17 @@ function sceneSvg(t) {
   }
   if (t.visitors[0]) placeCreature(t.visitors[0], t.visitors[0].bands[0], 1350, 330, true);
 
-  const plantBase = H - (t.backdrop.floor?.h ?? 120) * 0.55;
+  const plantBase = H - t.floorCover + 24; // as in AquariumScene.buildPlants
   // Caustics: two stretched copies, the second mirrored, at low opacity (as in AquariumScene).
   const causticSvgs = t.caustics
     ? `<g opacity="0.10"><image href="${href(t.caustics)}" x="-60" y="-40" width="${W + 120}" height="${H + 80}" preserveAspectRatio="none"/></g>` +
       `<g opacity="0.08" transform="translate(${W},0) scale(-1,1)"><image href="${href(t.caustics)}" x="-60" y="-40" width="${W + 120}" height="${H + 80}" preserveAspectRatio="none"/></g>`
     : '';
   // Critters walk on the front part of the floor (same band as the engine's crawlBand()).
-  const floorH = t.backdrop.floor?.h ?? 120;
   const critterSvgs = t.critters
     .map((c, i) => {
       const cx = 220 + i * 360 + between(-60, 60);
-      const cy = H - floorH * between(0.12, 0.4);
+      const cy = H - between(14, 80) - c.h / 2; // feet on the front ledge, as in AquariumScene
       const mirror = rand() < 0.5 ? `translate(${c.w},0) scale(-1,1)` : '';
       return `<g transform="translate(${cx - c.w / 2},${cy - c.h / 2})"><g transform="${mirror}">${creatureSvg(c)}</g></g>`;
     })
@@ -402,10 +403,208 @@ ${water}${layer(t.backdrop.far)}${bands.far.join('')}${layer(t.backdrop.reef)}${
 </svg>`;
 }
 
+// ---------- device export: optimized textures + theme.json ----------
+//
+// The review images above use the full-size art. The Roku gets textures that cost as little
+// texture memory as possible (it stores every image as width x height x 4 bytes, whatever the
+// file format), and files as small as possible (the Channel Store package cap is ~4 MB):
+//   - sprites are cropped to their visible pixels, with offsets in theme.json
+//   - backdrop rows that are always hidden behind solid layers in front are trimmed away
+//   - soft, blurry textures are stored smaller and stretched back by the Poster (illustrated only;
+//     pixel art must stay at full size to stay crisp)
+//   - anything wider than MAX_TEXTURE is split into pieces (2048 is a widely reported Roku limit)
+//   - PNGs become palette PNGs when that's lossless (pixel art) or visually identical (illustrated)
+
+const MAX_TEXTURE = 2048;
+const BUDGET = { textureMB: 20, packageMB: 4 };
+// Soft textures stored at a fraction of their display size (non-pixelated styles only).
+const SOFT_SCALE = { far: 0.5, ray: 0.25, caustics: 0.5 };
+
+function alphaBox(img) {
+  let [x0, y0, x1, y1] = [img.width, img.height, -1, -1];
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      if (img.data[(y * img.width + x) * 4 + 3] > 0) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+  }
+  return x1 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+}
+
+function crop(img, x, y, w, h) {
+  const data = new Uint8Array(w * h * 4);
+  for (let row = 0; row < h; row++) {
+    const src = ((y + row) * img.width + x) * 4;
+    data.set(img.data.subarray(src, src + w * 4), row * w * 4);
+  }
+  return { width: w, height: h, data };
+}
+
+// Smallest height, over all columns, of the fully opaque run up from the bottom edge.
+function solidCover(img) {
+  let min = img.height;
+  for (let x = 0; x < img.width; x++) {
+    let run = 0;
+    for (let y = img.height - 1; y >= 0 && img.data[(y * img.width + x) * 4 + 3] === 255; y--) run++;
+    if (run < min) min = run;
+  }
+  return min;
+}
+
+async function resize(img, w, h) {
+  const { data, info } = await sharp(Buffer.from(img.data), { raw: { width: img.width, height: img.height, channels: 4 } })
+    .resize(w, h, { kernel: 'lanczos3', fit: 'fill' })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return { width: info.width, height: info.height, data: new Uint8Array(data) };
+}
+
+// Palette PNG if it's lossless (exact) or close enough (meanErr / maxErr per channel), else a
+// maximally compressed truecolor PNG.
+async function encodeTexture(img, exact) {
+  const raw = () => sharp(Buffer.from(img.data), { raw: { width: img.width, height: img.height, channels: 4 } });
+  const full = await raw().png({ compressionLevel: 9, adaptiveFiltering: true, effort: 10 }).toBuffer();
+  let pal;
+  try {
+    pal = await raw().png({ palette: true, quality: 100, effort: 10, dither: exact ? 0 : 0.6, compressionLevel: 9 }).toBuffer();
+  } catch {
+    return { buf: full, palette: false };
+  }
+  if (pal.length >= full.length) return { buf: full, palette: false };
+  const back = PNG.sync.read(pal).data;
+  let sum = 0;
+  let max = 0;
+  for (let i = 0; i < img.data.length; i += 4) {
+    const a = img.data[i + 3];
+    for (let c = 0; c < 4; c++) {
+      if (c < 3 && a === 0) continue;
+      const e = Math.abs(img.data[i + c] - back[i + c]);
+      sum += e;
+      if (e > max) max = e;
+    }
+  }
+  const mean = sum / (img.data.length);
+  const ok = exact ? max === 0 : mean <= 0.8 && max <= 24;
+  return ok ? { buf: pal, palette: true } : { buf: full, palette: false };
+}
+
+async function exportDevice(style, t, outDir) {
+  const exact = t.pixelated;
+  const stats = { textures: 0, decoded: 0, bytes: 0, palette: 0, maxDim: 0, files: [] };
+  const written = new Map();
+  async function write(name, img) {
+    if (written.has(name)) return written.get(name);
+    const { buf, palette } = await encodeTexture(img, exact);
+    fs.writeFileSync(path.join(outDir, `${name}.png`), buf);
+    stats.textures++;
+    stats.decoded += img.width * img.height * 4;
+    stats.bytes += buf.length;
+    if (palette) stats.palette++;
+    stats.maxDim = Math.max(stats.maxDim, img.width, img.height);
+    stats.files.push({ name, w: img.width, h: img.height, bytes: buf.length });
+    const uri = `pkg:/images/themes/${style}/${name}.png`;
+    written.set(name, uri);
+    return uri;
+  }
+  const soft = (key) => (exact ? 1 : SOFT_SCALE[key] ?? 1);
+
+  // Backdrops: trim always-hidden bottom rows, soften, split. Display sizes stay in screen px.
+  const out = { style, pixelated: t.pixelated, bandScale: t.bandScale, backdrop: {}, floorCover: t.floorCover };
+  const bd = t.backdrop;
+  if (bd.water) out.backdrop.water = { uri: await write(bd.water.name, bd.water.img), w: bd.water.w, h: bd.water.h };
+  const cover = { floor: bd.floor ? solidCover(bd.floor.img) : 0, reef: bd.reef ? solidCover(bd.reef.img) : 0 };
+  const hiddenBelow = { floor: 0, reef: cover.floor, far: Math.max(cover.floor, cover.reef) };
+  for (const key of ['far', 'reef', 'floor']) {
+    const a = bd[key];
+    if (!a) continue;
+    const margin = 6;
+    const trim = Math.max(0, Math.min(a.h - 1, hiddenBelow[key] - margin));
+    let img = trim > 0 ? crop(a.img, 0, 0, a.w, a.h - trim) : a.img;
+    const dispH = img.height;
+    const s = soft(key);
+    if (s !== 1) img = await resize(img, Math.round(img.width * s), Math.round(img.height * s));
+    const pieces = Math.ceil(img.width / MAX_TEXTURE);
+    const chunks = [];
+    for (let i = 0; i < pieces; i++) {
+      const x0 = Math.round((i * img.width) / pieces);
+      const x1 = Math.round(((i + 1) * img.width) / pieces);
+      const part = pieces === 1 ? img : crop(img, x0, 0, x1 - x0, img.height);
+      chunks.push({ uri: await write(pieces === 1 ? a.name : `${a.name}-${i}`, part), x: (x0 / img.width) * a.w, w: ((x1 - x0) / img.width) * a.w });
+    }
+    out.backdrop[key] = { w: a.w, h: dispH, bottom: trim, chunks };
+  }
+
+  // Soft single textures: ray (stretched as is) and caustics (cropped, then stretched).
+  if (t.ray) {
+    const s = soft('ray');
+    const img = s !== 1 ? await resize(t.ray.img, Math.round(t.ray.w * s), Math.round(t.ray.h * s)) : t.ray.img;
+    out.ray = { uri: await write(t.ray.name, img), w: t.ray.w, h: t.ray.h };
+  }
+  if (t.caustics) {
+    const c = t.caustics;
+    const box = alphaBox(c.img) ?? { x: 0, y: 0, w: c.w, h: c.h };
+    let img = crop(c.img, box.x, box.y, box.w, box.h);
+    const s = soft('caustics');
+    if (s !== 1) img = await resize(img, Math.round(img.width * s), Math.round(img.height * s));
+    // Fractions of the full canvas, because the engine stretches the canvas over the screen.
+    out.caustics = { uri: await write(c.name, img), fx: box.x / c.w, fy: box.y / c.h, fw: box.w / c.w, fh: box.h / c.h };
+  }
+  out.bubbles = [];
+  for (const b of t.bubbles) out.bubbles.push({ uri: await write(b.name, b.img), w: b.w, h: b.h });
+  out.plants = [];
+  for (const p of t.plants) {
+    const segments = [];
+    for (const sgm of p.segments) segments.push({ uri: await write(sgm.name, sgm.img), w: sgm.w, h: sgm.h });
+    out.plants.push({ id: p.id, overlap: p.overlap, sway: p.sway, segments });
+  }
+
+  // Creatures: each part cropped to its visible pixels; x/y place it on the shared canvas.
+  const creatures = async (list) => {
+    const res = [];
+    for (const c of list) {
+      const parts = [];
+      for (const p of c.parts) {
+        const box = alphaBox(p.img) ?? { x: 0, y: 0, w: 1, h: 1 };
+        const uri = await write(p.name, crop(p.img, box.x, box.y, box.w, box.h));
+        const part = { uri, x: box.x, y: box.y, w: box.w, h: box.h, anim: p.anim, pivot: p.pivot };
+        if (p.amp !== undefined) part.amp = p.amp;
+        if (p.period !== undefined) part.period = p.period;
+        parts.push(part);
+      }
+      const { parts: _drop, ...rest } = c;
+      res.push({ ...rest, parts });
+    }
+    return res;
+  };
+  out.fish = await creatures(t.fish);
+  out.visitors = await creatures(t.visitors);
+  out.critters = await creatures(t.critters);
+
+  fs.writeFileSync(path.join(outDir, 'theme.json'), JSON.stringify(out));
+  return stats;
+}
+
+function reportBudget(style, st) {
+  const mb = (b) => (b / 1e6).toFixed(1);
+  const flags = [];
+  if (st.decoded / 1e6 > BUDGET.textureMB) flags.push(`over the ${BUDGET.textureMB} MB texture budget`);
+  if (st.maxDim > MAX_TEXTURE) flags.push(`a texture exceeds ${MAX_TEXTURE}px`);
+  console.log(
+    `[${style}] device: ${st.textures} textures, ${mb(st.decoded)} MB texture memory, ${mb(st.bytes)} MB of PNGs ` +
+      `(${st.palette} palette), largest side ${st.maxDim}px${flags.length ? ` -- WARNING: ${flags.join(', ')}` : ''}`,
+  );
+  if (flags.length) warnings++;
+}
+
 // ---------- store images (from the illustrated tank mock) ----------
 
-function buildStoreImages(theme) {
+async function buildStoreImages(theme) {
   const dir = path.join(root, 'src', 'images', 'store');
+  fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });
   const overlay = (name) => {
     const f = path.join(artDir, 'store', `${name}.svg`);
@@ -421,7 +620,8 @@ function buildStoreImages(theme) {
     ['icon_focus_hd', 290, 218, '480 160 960 720'],
   ];
   for (const [name, w, h, view] of out) {
-    fs.writeFileSync(path.join(dir, `${name}.png`), encodePng(renderSvg(frame(w, h, view, name.replace(/_(f?hd)$/, '')))));
+    const png = encodePng(renderSvg(frame(w, h, view, name.replace(/_(f?hd)$/, ''))));
+    fs.writeFileSync(path.join(dir, `${name}.jpg`), await sharp(png).jpeg({ quality: 88, mozjpeg: true }).toBuffer());
   }
   console.log('[store] icons and splash -> src/images/store/');
 }
@@ -433,7 +633,7 @@ for (const style of styles) {
   if (!STYLES.includes(style)) { console.error(`Unknown style "${style}"`); process.exit(1); }
   try {
     const theme = await buildStyle(style);
-    if (style === 'illustrated') buildStoreImages(theme);
+    if (style === 'illustrated') await buildStoreImages(theme);
   } catch (err) {
     failed = true;
     console.error(err.message);

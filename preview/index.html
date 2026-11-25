@@ -34,7 +34,7 @@
       <select id="scroll"><option value="1">Slow</option><option value="2">Medium</option><option value="3">Fast</option></select>
     </label>
     <label>Fish
-      <select id="fish"><option value="6">Few</option><option value="12" selected>Some</option><option value="20">Lots</option></select>
+      <select id="fish"><option value="8">Few</option><option value="14" selected>Some</option><option value="22">Lots</option></select>
     </label>
     <label>Time
       <select id="hour"><option value="">Now</option><option value="13">Day</option><option value="19.75">Dusk</option><option value="23">Night</option></select>
@@ -47,6 +47,7 @@
     </label>
     <button id="restart">Restart</button>
     <button id="settings">Settings screen</button>
+    <button id="saveFrame" title="Saves the current frame at full size to out/screens/">Save frame</button>
     <button id="audit" title="Runs only the deterministic motions at 10x speed and checks that every pixel changes">Burn-in audit</button>
   </header>
   <div id="stage">
@@ -182,6 +183,16 @@
       setStatus(stuck === 0 ? 'Burn-in audit passed' : 'Burn-in audit found pixels that did not change', stuck !== 0);
     }
 
+    // Saves the emulator's current frame (full 1920x1080) to out/screens/<name>.png.
+    async function saveFrame(name = `frame-${Date.now()}`) {
+      const f = brs.getScreenshot();
+      const c = new OffscreenCanvas(f.width, f.height);
+      c.getContext('2d').putImageData(f, 0, 0);
+      const blob = await c.convertToBlob({ type: 'image/png' });
+      const res = await fetch(`shot?name=${encodeURIComponent(name)}`, { method: 'POST', body: blob });
+      return res.text();
+    }
+
     async function main() {
       brs.subscribe('preview', (event, data) => {
         if (event === 'started') running = true;
@@ -200,6 +211,7 @@
       }
       document.getElementById('restart').addEventListener('click', () => run('screensaver'));
       document.getElementById('settings').addEventListener('click', () => run('settings'));
+      document.getElementById('saveFrame').addEventListener('click', () => saveFrame().then((f) => setStatus(`Saved ${f}`)));
       document.getElementById('audit').addEventListener('click', () => audit().catch((e) => setStatus(`Audit failed: ${e.message}`, true)));
       run('screensaver');
     }

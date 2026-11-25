@@ -7,9 +7,9 @@ build_version=1
 
 ui_resolutions=fhd
 
-mm_icon_focus_fhd=pkg:/images/store/icon_focus_fhd.png
-mm_icon_focus_hd=pkg:/images/store/icon_focus_hd.png
-splash_screen_fhd=pkg:/images/store/splash_fhd.png
-splash_screen_hd=pkg:/images/store/splash_hd.png
+mm_icon_focus_fhd=pkg:/images/store/icon_focus_fhd.jpg
+mm_icon_focus_hd=pkg:/images/store/icon_focus_hd.jpg
+splash_screen_fhd=pkg:/images/store/splash_fhd.jpg
+splash_screen_hd=pkg:/images/store/splash_hd.jpg
 splash_color=#06213A
 splash_min_time=0

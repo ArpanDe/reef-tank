@@ -19,10 +19,6 @@
         <Animation id="moveAnim" easeFunction="inOutQuad" repeat="false">
             <Vector2DFieldInterpolator id="moveInterp" />
         </Animation>
-        <!-- Critters alternate between moveAnim and moveAnim2 (see startCrawling). -->
-        <Animation id="moveAnim2" easeFunction="linear" repeat="false">
-            <Vector2DFieldInterpolator id="moveInterp2" />
-        </Animation>
         <Animation id="turnAnim" duration="0.7" easeFunction="inOutQuad" repeat="false">
             <Vector2DFieldInterpolator id="turnInterp" key="[0.0, 1.0]" />
         </Animation>

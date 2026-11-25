@@ -23,24 +23,37 @@ function evenKeys(n as integer) as object
     return keys
 end function
 
-' One full sine cycle around center, as n closed-loop samples (first = last),
-' starting `phase` of the way into the cycle (0..1). Loops get out-of-step
-' phases this way rather than with Animation.delay, which Roku re-applies on
-' every repeat (the loop would pause each cycle).
-function sineValues(center as float, amp as float, n as integer, phase as float) as object
+' `cycles` full sine cycles around center within one loop, starting `phase`
+' (0..1) of the way into a cycle, sampled finely enough to look smooth.
+function sineCycles(center as float, amp as float, cycles as integer, phase as float) as object
+    n = 8 * cycles + 1
+    if n > 49 then n = 49
     values = []
     for i = 0 to n - 1
-        values.Push(center + amp * Sin(6.2831853 * (i / (n - 1) + phase)))
+        values.Push(center + amp * Sin(6.2831853 * (cycles * i / (n - 1) + phase)))
     end for
     return values
 end function
 
-' Keys and values for a two-frame flip starting `phase` (0.05..0.45) into the
-' cycle: frame A shows for half of each cycle, frame B (values inverted) the other half.
-function frameFlip(phase as float) as object
-    a = 0.5 - phase
-    b = 1.0 - phase
-    return { keys: [0.0, a - 0.001, a, b - 0.001, b, 1.0], a: [1.0, 1.0, 0.0, 0.0, 1.0, 1.0], b: [0.0, 0.0, 1.0, 1.0, 0.0, 0.0] }
+' Keys and values for a two-frame flip repeated `cycles` times per loop,
+' starting `phase` (0.05..0.45) into a cycle: frame A shows for half of each
+' cycle and frame B (values inverted) for the other half.
+function frameFlip(phase as float, cycles as integer) as object
+    keys = []
+    a = []
+    b = []
+    for j = 0 to cycles - 1
+        base = j / cycles
+        k1 = base + (0.5 - phase) / cycles
+        k2 = base + (1.0 - phase) / cycles
+        keys.Append([base, k1 - 0.0005, k1, k2 - 0.0005, k2])
+        a.Append([1.0, 1.0, 0.0, 0.0, 1.0])
+        b.Append([0.0, 0.0, 1.0, 1.0, 0.0])
+    end for
+    keys.Push(1.0)
+    a.Push(1.0)
+    b.Push(0.0)
+    return { keys: keys, a: a, b: b }
 end function
 
 ' A repeating linear Animation under owner, not started yet.
@@ -65,11 +78,3 @@ sub addInterp(anim as object, target as string, kind as string, keys as dynamic,
     interp.keyValue = values
     interp.fieldToInterp = target
 end sub
-
-' Shorthand: a started loop with a single interpolator.
-function addLoop(owner as object, target as string, kind as string, values as object, period as float) as object
-    anim = newLoop(owner, period)
-    addInterp(anim, target, kind, invalid, values)
-    anim.control = "start"
-    return anim
-end function
