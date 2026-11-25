@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A fixed pool of bubbles rising from the floor: two streams from vents in
+     the reef floor, plus strays. The floor scrolls, so vents move with it and
+     every bubble drifts left at the floor's speed while it rises. -->
+<component name="BubbleField" extends="Group">
+    <interface>
+        <!-- { bubbles: [textures small..large], floorY, vents: [worldX, worldX], tileW, speed } -->
+        <field id="config" type="assocarray" onChange="onConfig" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/util.brs" />
+    <script type="text/brightscript" uri="pkg:/components/BubbleField.brs" />
+    <children>
+        <!-- Relaunches finished bubbles; see onBubbleState. -->
+        <Timer id="relaunchTimer" duration="0.2" repeat="true" />
+    </children>
+</component>

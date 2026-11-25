@@ -1,0 +1,16 @@
+# crab body and claws (static), front-side view
+grid:
+....................
+.kk.kk........kk.kk.
+kpkkpk.wk..wk.kpkkpk
+kprrpk.kk..kk.kprrpk
+krrrrk..R..R..krrrrk
+.kRrk...R..R...krRk.
+..kRkkkkkkkkkkkkRk..
+..kppppppppppppppk..
+..krprrrprrprrrprk..
+..krrrrrrrrrrrrrrk..
+...kRRRRRkkRRRRRk...
+....kkkkk..kkkkk....
+....................
+....................

@@ -1,0 +1,8 @@
+# small bubble (2x2): highlight + rim
+palette:
+1 #c8f4ff c8
+2 #ffffff ff
+3 #8fdcf0 80
+grid:
+21
+13

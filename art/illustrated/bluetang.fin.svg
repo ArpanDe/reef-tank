@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="150" viewBox="0 0 240 150">
+  <defs>
+    <linearGradient id="p" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#3a6ee6"/><stop offset="0.55" stop-color="#7fa8f0"/><stop offset="1" stop-color="#ffd84a"/>
+    </linearGradient>
+  </defs>
+  <!-- pectoral fin: blue at the base, yellow at the tip -->
+  <path d="M182,80 C170,75 156,77 146,85 C145,91 151,94 159,93 C168,91 177,88 183,85 Z" fill="url(#p)" fill-opacity="0.92" stroke="#0b1640" stroke-width="1.8" stroke-linejoin="round"/>
+  <g stroke="#1a3a9a" stroke-opacity="0.4" stroke-width="1"><path d="M180,82 L152,84"/><path d="M180,83 L154,90"/></g>
+</svg>

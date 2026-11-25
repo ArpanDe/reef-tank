@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="110" viewBox="0 0 180 110">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7741c"/><stop offset="0.45" stop-color="#ff8f34"/><stop offset="1" stop-color="#e8621a"/>
+    </linearGradient>
+    <linearGradient id="fin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff9a44"/><stop offset="1" stop-color="#ef6c1c"/>
+    </linearGradient>
+    <radialGradient id="hl" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="bc">
+      <path d="M167,59 C167,48 161,38 151,32 C137,24 113,22 93,26 C75,30 62,39 52,46 L45,48 L45,64 L52,66 C63,75 80,85 100,87 C122,89 144,83 156,75 C163,70 167,65 167,59 Z"/>
+    </clipPath>
+  </defs>
+  <!-- dorsal fin (spiny + soft), anal and pelvic fins: orange with a black margin -->
+  <g stroke="#17100c" stroke-width="3.2" stroke-linejoin="round">
+    <path d="M148,38 C145,26 138,17 129,15 C123,15 119,19 114,20 C109,18 104,19 99,24 C93,14 82,10 72,12 C62,15 55,26 50,46 L100,40 Z" fill="url(#fin)"/>
+    <path d="M101,82 C97,95 88,101 77,101 C67,99 59,89 55,66 L80,78 Z" fill="url(#fin)"/>
+    <path d="M131,80 C129,91 124,99 116,102 C113,96 115,88 117,82 Z" fill="url(#fin)"/>
+  </g>
+  <!-- body -->
+  <path d="M167,59 C167,48 161,38 151,32 C137,24 113,22 93,26 C75,30 62,39 52,46 L45,48 L45,64 L52,66 C63,75 80,85 100,87 C122,89 144,83 156,75 C163,70 167,65 167,59 Z" fill="url(#b)"/>
+  <g clip-path="url(#bc)">
+    <!-- white bands edged in black -->
+    <g fill="#fbfbf6" stroke="#17100c" stroke-width="3">
+      <path d="M126,16 C117,40 119,70 129,94 L144,94 C134,70 132,42 141,16 Z"/>
+      <path d="M85,16 C80,40 82,70 89,94 L106,94 C109,80 117,64 113,50 C109,38 105,26 103,16 Z"/>
+      <path d="M51,38 C48,50 48,62 51,74 L62,74 C59,62 59,50 62,38 Z"/>
+    </g>
+    <!-- soft top-lit highlight and belly shade -->
+    <ellipse cx="122" cy="38" rx="40" ry="11" fill="url(#hl)"/>
+    <path d="M40,80 C80,92 130,92 170,72 L170,110 L40,110 Z" fill="#a8400c" opacity="0.18"/>
+  </g>
+  <path d="M167,59 C167,48 161,38 151,32 C137,24 113,22 93,26 C75,30 62,39 52,46 L45,48 M45,64 L52,66 C63,75 80,85 100,87 C122,89 144,83 156,75 C163,70 167,65 167,59" fill="none" stroke="#4a1a06" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- eye and mouth -->
+  <circle cx="151" cy="47" r="6.6" fill="#7a2e0a" stroke="#2a1206" stroke-width="1.4"/>
+  <circle cx="151" cy="47" r="4.2" fill="#0b0604"/>
+  <circle cx="149.3" cy="45.2" r="1.6" fill="#ffffff" opacity="0.9"/>
+  <path d="M166.5,61.5 L162,62.3" stroke="#5a2208" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+</svg>

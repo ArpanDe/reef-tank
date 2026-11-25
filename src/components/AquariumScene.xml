@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<component name="AquariumScene" extends="Scene">
+    <script type="text/brightscript" uri="pkg:/components/util.brs" />
+    <script type="text/brightscript" uri="pkg:/components/prefs.brs" />
+    <script type="text/brightscript" uri="pkg:/components/AquariumScene.brs" />
+    <children>
+        <!-- Everything in the tank, back to front. Fish layers sit between the
+             backdrop layers for depth, and each backdrop layer scrolls sideways
+             forever. Don't animate this group itself: moving an ancestor of
+             nodes that animate on their own froze the fish in brs-engine. -->
+        <Group id="world">
+            <Poster id="water" width="1920" height="1080" />
+            <Group id="farLayer" />
+            <Group id="farFish" />
+            <Group id="reefLayer" />
+            <Group id="midFish" />
+            <Group id="plantsLayer" />
+            <Group id="nearFish" />
+            <Group id="floorLayer" />
+            <Group id="critterLayer" />
+            <BubbleField id="bubbles" />
+        </Group>
+        <LightRays id="rays" />
+
+        <Rectangle id="night" width="1920" height="1080" color="0x050E2CFF" opacity="0" />
+
+        <!-- Burn-in light cycle: a faint bright veil, then a faint dark veil.
+             Above the night overlay, so the guarantee holds at any time of day. -->
+        <Rectangle id="brighten" width="1920" height="1080" color="0xE6F7FFFF" opacity="0" />
+        <Rectangle id="darken" width="1920" height="1080" color="0x020812FF" opacity="0" />
+        <ClockOverlay id="clock" />
+
+        <Timer id="lightTimer" duration="60" repeat="true" />
+        <Timer id="visitorTimer" repeat="false" />
+    </children>
+</component>

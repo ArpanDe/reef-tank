@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="190" viewBox="0 0 200 190">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffde3c"/><stop offset="0.55" stop-color="#ffd51a"/><stop offset="1" stop-color="#f0bc00"/>
+    </linearGradient>
+    <linearGradient id="fin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd52a"/><stop offset="1" stop-color="#f5c200"/>
+    </linearGradient>
+    <radialGradient id="hl" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="bc"><path d="M186,100 C184,93 178,87 170,81 C166,67 158,55 142,47 C122,39 98,41 82,51 C70,59 62,71 58,83 L54,89 L54,104 L58,108 C64,122 74,134 90,142 C110,150 134,148 152,138 C164,130 170,118 174,110 C178,106 184,104 186,103 Z"/></clipPath>
+    <clipPath id="fc"><path d="M160,54 C152,29 132,12 108,11 C84,11 66,27 58,50 C55,62 55,74 57,86 L110,70 Z M152,136 C144,160 124,179 100,179 C80,178 66,164 60,142 C56,128 55,116 57,104 L110,122 Z"/></clipPath>
+  </defs>
+  <!-- tall dorsal and anal fins make the disc shape -->
+  <path d="M160,54 C152,29 132,12 108,11 C84,11 66,27 58,50 C55,62 55,74 57,86 L110,70 Z M152,136 C144,160 124,179 100,179 C80,178 66,164 60,142 C56,128 55,116 57,104 L110,122 Z" fill="url(#fin)"/>
+  <g clip-path="url(#fc)" fill="none" stroke="#d6a400" stroke-opacity="0.45" stroke-width="1.3">
+    <path d="M150,58 L146,26"/><path d="M138,54 L128,16"/><path d="M124,52 L110,12"/><path d="M110,54 L92,14"/><path d="M98,58 L76,22"/><path d="M88,64 L64,38"/><path d="M80,72 L58,58"/>
+    <path d="M144,132 L140,164"/><path d="M132,136 L122,174"/><path d="M118,138 L104,178"/><path d="M106,136 L86,174"/><path d="M96,132 L72,164"/><path d="M86,126 L62,144"/>
+    <path d="M160,54 C152,29 132,12 108,11 C84,11 66,27 58,50 C55,62 55,74 57,86 M152,136 C144,160 124,179 100,179 C80,178 66,164 60,142 C56,128 55,116 57,104" stroke="#fff1a0" stroke-opacity="0.65" stroke-width="3"/>
+  </g>
+  <path d="M160,54 C152,29 132,12 108,11 C84,11 66,27 58,50 C55,62 55,74 57,86 M152,136 C144,160 124,179 100,179 C80,178 66,164 60,142 C56,128 55,116 57,104" fill="none" stroke="#7a5600" stroke-width="2" stroke-linejoin="round"/>
+  <!-- pelvic fin -->
+  <path d="M152,131 C150,142 146,151 139,156 C138,147 140,139 143,132 Z" fill="url(#fin)" stroke="#7a5600" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- body -->
+  <path d="M186,100 C184,93 178,87 170,81 C166,67 158,55 142,47 C122,39 98,41 82,51 C70,59 62,71 58,83 L54,89 L54,104 L58,108 C64,122 74,134 90,142 C110,150 134,148 152,138 C164,130 170,118 174,110 C178,106 184,104 186,103 Z" fill="url(#b)"/>
+  <g clip-path="url(#bc)">
+    <ellipse cx="128" cy="64" rx="44" ry="16" fill="url(#hl)"/>
+    <path d="M50,124 C90,150 140,150 190,112 L190,190 L50,190 Z" fill="#b88400" opacity="0.2"/>
+    <!-- faint lateral line -->
+    <path d="M156,66 C130,56 100,58 64,90" stroke="#fff6c0" stroke-opacity="0.5" stroke-width="1.4" fill="none"/>
+  </g>
+  <path d="M160,56 C150,50 146,48 142,47 C122,39 98,41 82,51 C70,59 62,71 58,83 L54,89 M54,104 L58,108 C64,122 74,134 90,142 C110,150 134,148 150,139" fill="none" stroke="#d29e00" stroke-width="1.4" stroke-opacity="0.8"/>
+  <path d="M160,55 C164,62 167,72 170,81 C178,87 184,93 186,100 L186,103 C184,104 178,106 174,110 C170,118 164,130 151,138" fill="none" stroke="#7a5600" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- white caudal spine -->
+  <path d="M60,97 C64,93.5 70,93.5 75,97 C70,100.5 64,100.5 60,97 Z" fill="#fbfbf4" stroke="#7a5600" stroke-width="1.1"/>
+  <!-- eye and mouth -->
+  <circle cx="163" cy="72" r="6.4" fill="#3a2608" stroke="#1a1004" stroke-width="1.3"/>
+  <circle cx="163" cy="72" r="4" fill="#060402"/>
+  <circle cx="161.4" cy="70.3" r="1.6" fill="#ffffff" opacity="0.9"/>
+  <path d="M186,101.5 L182.5,101.8" stroke="#5a3e00" stroke-width="1.3" stroke-linecap="round"/>
+</svg>

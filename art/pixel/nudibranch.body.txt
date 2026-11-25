@@ -1,0 +1,10 @@
+# nudibranch body (static)
+grid:
+....................
+....................
+..........kkkk......
+.....kkkkkyyoykkkk..
+...kkyoyyovvvvyoyyk.
+.kkoyvvvwvVwVVwvvvok
+kyyvvwwVVVwVVVVVwVvy
+oZZZZZZZZZZZZZZZZZZZ

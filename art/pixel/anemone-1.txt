@@ -1,0 +1,12 @@
+# anemone foot
+grid:
+...ZvvvVVVVVZZZ...
+...ZvvvVVVVVZZZ...
+..ZvvvvVVVVVZZZZ..
+..ZvvvvVVVVVZZZZ..
+..ZvvvvVVVVVZZZZ..
+.ZvvvvvVVVVVZZZZZ.
+.ZvvvvvVVVVVZZZZZ.
+ZvvvvvvVVVVVZZZZZZ
+ZvvvvvvVVVVVZZZZZZ
+ZvvvvvvVVVVVZZZZZZ

@@ -1,0 +1,12 @@
+<!-- Drawn over the tank mock in tank coordinates; the icon shows x 480-1440, y 160-880. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080">
+  <defs>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#041a2e" stop-opacity="0"/>
+      <stop offset="1" stop-color="#041a2e" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+  <rect x="480" y="650" width="960" height="230" fill="url(#fade)"/>
+  <text x="963" y="833" text-anchor="middle" font-family="DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="bold" font-size="110" fill="#000" fill-opacity="0.35">Reef Tank</text>
+  <text x="960" y="828" text-anchor="middle" font-family="DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="bold" font-size="110" fill="#f4fbff">Reef Tank</text>
+</svg>

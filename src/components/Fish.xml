@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One creature: a fish, a school of small fish, a drifter (seahorse), a
+     critter walking on the reef floor, or a visitor that crosses the tank once
+     and then sets `finished`. -->
+<component name="Fish" extends="Group">
+    <interface>
+        <!-- { spec, uid, depthScale, tint, opacity, schoolSize, bounds: [xMin, yMin, xMax, yMax], floorSpeed }
+             For critters, bounds' y range is where their feet stand, and floorSpeed is the floor's scroll speed. -->
+        <field id="config" type="assocarray" />
+        <field id="finished" type="boolean" value="false" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/util.brs" />
+    <script type="text/brightscript" uri="pkg:/components/Fish.brs" />
+    <!-- Swimming and turning animate this node's own translation and scale
+         (fieldToInterp is set to "<uid>.translation" / "<uid>.scale" in
+         onConfig). Moving an inner group instead wasn't redrawn mid-swim in
+         brs-engine: the fish jumped at the end of each swim. -->
+    <children>
+        <Animation id="moveAnim" easeFunction="inOutQuad" repeat="false">
+            <Vector2DFieldInterpolator id="moveInterp" />
+        </Animation>
+        <!-- Critters alternate between moveAnim and moveAnim2 (see startCrawling). -->
+        <Animation id="moveAnim2" easeFunction="linear" repeat="false">
+            <Vector2DFieldInterpolator id="moveInterp2" />
+        </Animation>
+        <Animation id="turnAnim" duration="0.7" easeFunction="inOutQuad" repeat="false">
+            <Vector2DFieldInterpolator id="turnInterp" key="[0.0, 1.0]" />
+        </Animation>
+        <Timer id="pauseTimer" repeat="false" />
+    </children>
+</component>

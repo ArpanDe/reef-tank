@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="300" viewBox="0 0 420 300">
+  <defs>
+    <linearGradient id="f" x1="1" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#4f5a2e"/><stop offset="1" stop-color="#6a7440"/>
+    </linearGradient>
+  </defs>
+  <!-- far-side front flipper, rising behind the shell; hinged at the shoulder -->
+  <path d="M308,142 C300,112 280,82 250,58 C234,46 218,38 202,35 C210,46 222,60 234,78 C252,104 268,128 282,152 Z" fill="url(#f)" stroke="#262410" stroke-width="2.2" stroke-linejoin="round"/>
+  <g fill="none" stroke="#a8a878" stroke-opacity="0.45" stroke-width="1.4">
+    <path d="M286,120 L268,128"/><path d="M270,98 L254,106"/><path d="M252,78 L238,86"/><path d="M234,60 L222,66"/>
+  </g>
+  <path d="M300,116 C286,92 266,70 240,52" stroke="#9aa070" stroke-opacity="0.5" stroke-width="2" fill="none"/>
+</svg>

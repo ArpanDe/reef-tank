@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Soft light shafts from the surface. The scene dims them at night through
+     this group's opacity and sets `tint`. -->
+<component name="LightRays" extends="Group">
+    <interface>
+        <field id="config" type="assocarray" onChange="onConfig" />
+        <field id="tint" type="color" value="0xFFFFFFFF" onChange="onTint" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/util.brs" />
+    <script type="text/brightscript" uri="pkg:/components/LightRays.brs" />
+</component>

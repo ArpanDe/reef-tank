@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A dim clock that fades out and reappears somewhere else every minute,
+     so it never burns into the screen. Set `format` ("12" or "24") to start. -->
+<component name="ClockOverlay" extends="Group">
+    <interface>
+        <field id="format" type="string" onChange="onFormat" />
+    </interface>
+    <script type="text/brightscript" uri="pkg:/components/util.brs" />
+    <script type="text/brightscript" uri="pkg:/components/ClockOverlay.brs" />
+    <children>
+        <Label id="time" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" opacity="0" />
+        <Timer id="tick" duration="5" repeat="true" />
+        <Timer id="moveTimer" duration="60" repeat="true" />
+        <Animation id="fadeOut" duration="1.5" easeFunction="inOutQuad" repeat="false">
+            <FloatFieldInterpolator fieldToInterp="time.opacity" key="[0.0, 1.0]" keyValue="[0.45, 0.0]" />
+        </Animation>
+        <Animation id="fadeIn" duration="1.5" easeFunction="inOutQuad" repeat="false">
+            <FloatFieldInterpolator fieldToInterp="time.opacity" key="[0.0, 1.0]" keyValue="[0.0, 0.45]" />
+        </Animation>
+    </children>
+</component>

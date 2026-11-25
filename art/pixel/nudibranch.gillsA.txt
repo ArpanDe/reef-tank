@@ -1,0 +1,10 @@
+# nudibranch gills + rhinophores, frame A
+grid:
+....kkOkk.......k...
+...kokOkok.....kOkk.
+...kokOkok.....kokOk
+....koOok......kokok
+....koOok......kokok
+.....kkk........kkok
+..................k.
+....................

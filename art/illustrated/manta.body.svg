@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="300" viewBox="0 0 520 300">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a4c62"/><stop offset="0.6" stop-color="#232f3e"/><stop offset="1" stop-color="#1a2430"/>
+    </linearGradient>
+    <linearGradient id="belly" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b8c6d0"/><stop offset="1" stop-color="#eef3f6"/>
+    </linearGradient>
+    <radialGradient id="hl" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#a8c0d4" stop-opacity="0.5"/><stop offset="1" stop-color="#a8c0d4" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="bc"><path d="M448,150 C444,128 414,116 374,117 C332,118 282,126 240,137 C216,143 198,150 186,158 C200,168 224,175 252,178 C300,183 348,185 388,180 C420,176 444,168 448,150 Z"/></clipPath>
+  </defs>
+  <!-- thin tail -->
+  <path d="M200,155 C166,160 126,166 86,172 C74,174 64,176 54,178 C66,178 78,177 90,176 C130,172 168,167 202,163 Z" fill="#1e2a38" stroke="#0c1018" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- pale underside just showing along the lower edge -->
+  <path d="M238,170 C290,183 352,186 400,178 C422,174 440,166 448,154 C448,164 438,176 418,182 C378,191 300,190 240,178 Z" fill="url(#belly)" stroke="#0c1018" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- cephalic fins: short rolled lobes either side of the wide mouth -->
+  <path d="M440,128 C452,121 466,121 474,127 C478,131 476,137 470,138 C462,138 452,139 444,142 Z" fill="#2c3a4a" stroke="#0c1018" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M444,160 C452,163 462,165 470,166 C477,168 478,175 472,178 C464,182 452,179 442,170 Z" fill="#2c3a4a" stroke="#0c1018" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M448,166 C456,168 464,170 470,172" stroke="#c8d4dc" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.8"/>
+  <!-- body -->
+  <path d="M448,150 C444,128 414,116 374,117 C332,118 282,126 240,137 C216,143 198,150 186,158 C200,168 224,175 252,178 C300,183 348,185 388,180 C420,176 444,168 448,150 Z" fill="url(#b)"/>
+  <g clip-path="url(#bc)">
+    <ellipse cx="350" cy="126" rx="80" ry="9" fill="url(#hl)"/>
+    <!-- pale shoulder patches -->
+    <path d="M404,124 C384,128 366,136 352,148 C370,142 390,136 414,132 Z" fill="#c8d4dc" opacity="0.4"/>
+  </g>
+  <path d="M448,150 C444,128 414,116 374,117 C332,118 282,126 240,137 C216,143 198,150 186,158" fill="none" stroke="#0c1018" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- wide mouth and small eye -->
+  <path d="M447,143 C450,148 450,157 446,163" stroke="#0c1018" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <path d="M445,145 C447,149 447,156 444,160" stroke="#a8b6c2" stroke-width="1.1" fill="none"/>
+  <circle cx="436" cy="135" r="3.4" fill="#0a0c10" stroke="#5a6a7a" stroke-width="0.8"/>
+  <circle cx="435.2" cy="134.2" r="1" fill="#ffffff" opacity="0.8"/>
+</svg>

@@ -1,0 +1,32 @@
+{
+  "name": "reef-tank",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An original aquarium screensaver for Roku",
+  "type": "module",
+  "scripts": {
+    "art": "node scripts/render-art.mjs",
+    "lint": "bsc",
+    "build": "npm run art && npm run lint",
+    "deploy": "npm run build && node scripts/roku.mjs deploy",
+    "deploy:release": "npm run build && node scripts/roku.mjs deploy --release",
+    "launch": "node scripts/roku.mjs launch",
+    "settings": "node scripts/roku.mjs launch mode=settings",
+    "shot": "node scripts/roku.mjs shot",
+    "logs": "node scripts/roku.mjs logs",
+    "console": "node scripts/roku.mjs console",
+    "zip": "npm run build && node scripts/roku.mjs zip --release",
+    "package": "npm run build && node scripts/roku.mjs package",
+    "preview": "npm run build && node scripts/roku.mjs zip && node scripts/preview-server.mjs"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@rokucommunity/bslint": "^0.8.47",
+    "brighterscript": "^0.73.8",
+    "brs-engine": "^2.7.1",
+    "brs-scenegraph": "^0.7.1",
+    "dotenv": "^18.0.10",
+    "pngjs": "^7.0.0",
+    "roku-deploy": "^3.18.4"
+  }
+}

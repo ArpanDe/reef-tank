@@ -1,0 +1,15 @@
+{
+  "rootDir": "src",
+  "files": [
+    "manifest",
+    "source/**/*",
+    "components/**/*",
+    "images/**/*"
+  ],
+  "createPackage": false,
+  "copyToStaging": false,
+  "stagingDir": "out/.bsc-staging",
+  "plugins": [
+    "@rokucommunity/bslint"
+  ]
+}

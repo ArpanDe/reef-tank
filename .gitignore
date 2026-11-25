@@ -1,0 +1,5 @@
+node_modules/
+out/
+.env
+src/images/themes/
+src/images/store/

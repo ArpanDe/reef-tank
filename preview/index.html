@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Reef Tank preview</title>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #020b14; color: #cfe4f5; font: 14px/1.4 system-ui, sans-serif; }
+    header { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; padding: 10px 14px; background: #041a2e; }
+    header h1 { font-size: 16px; margin: 0 10px 0 0; color: #f4fbff; }
+    label { display: flex; gap: 6px; align-items: center; }
+    select, button { font: inherit; background: #0b2d4a; color: #eaf6ff; border: 1px solid #2a5a80; border-radius: 6px; padding: 4px 8px; }
+    button { cursor: pointer; }
+    button:hover, select:hover { border-color: #6fb0e0; }
+    #stage { position: relative; width: min(100vw, calc((100vh - 90px) * 16 / 9)); aspect-ratio: 16 / 9; margin: 8px auto 0; background: #000; }
+    #display { width: 100%; height: 100%; display: block; }
+    #stats { position: absolute; top: 0; left: 0; }
+    #status { padding: 4px 14px; color: #8fb8d8; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #status.error { color: #ff9b8a; }
+    #auditPanel { padding: 0 14px 20px; }
+    #auditText { white-space: pre-wrap; font: 13px/1.5 ui-monospace, monospace; color: #eaf6ff; }
+    #auditMap { width: min(960px, 100%); border: 1px solid #2a5a80; }
+    kbd { background: #0b2d4a; border: 1px solid #2a5a80; border-radius: 4px; padding: 0 4px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Reef Tank</h1>
+    <label>Style
+      <select id="style"><option value="illustrated">Illustrated</option><option value="pixel">Pixel art</option></select>
+    </label>
+    <label>Scrolling
+      <select id="scroll"><option value="1">Slow</option><option value="2">Medium</option><option value="3">Fast</option></select>
+    </label>
+    <label>Fish
+      <select id="fish"><option value="6">Few</option><option value="12" selected>Some</option><option value="20">Lots</option></select>
+    </label>
+    <label>Time
+      <select id="hour"><option value="">Now</option><option value="13">Day</option><option value="19.75">Dusk</option><option value="23">Night</option></select>
+    </label>
+    <label>Clock
+      <select id="clock"><option value="off">Off</option><option value="12">12-hour</option><option value="24">24-hour</option></select>
+    </label>
+    <label>Visitor
+      <select id="visitor"><option value="">Random (every few min)</option><option value="turtle">Turtle now</option><option value="manta">Manta now</option><option value="jellyfish">Jellyfish now</option></select>
+    </label>
+    <button id="restart">Restart</button>
+    <button id="settings">Settings screen</button>
+    <button id="audit" title="Runs only the deterministic motions at 10x speed and checks that every pixel changes">Burn-in audit</button>
+  </header>
+  <div id="stage">
+    <canvas id="display" width="1920" height="1080"></canvas>
+    <div id="stats"></div>
+  </div>
+  <video id="player" style="display: none" crossorigin="anonymous"></video>
+  <div id="status">Loading engine…</div>
+  <section id="auditPanel" hidden>
+    <pre id="auditText"></pre>
+    <canvas id="auditMap" width="960" height="540" title="Red = pixels that did not change enough"></canvas>
+  </section>
+
+  <script src="brs.api.js"></script>
+  <script>
+    // Runs the real dev build (out/reef-tank-dev.zip) in brs-engine, a BrightScript
+    // simulator. Controls restart it with ECP-style launch args, which devMain.brs
+    // passes to the scene the same way `npm run launch -- style=pixel ...` does on a Roku.
+    // On the settings screen: arrow keys move, Enter = OK, Escape = Back.
+    const statusEl = document.getElementById('status');
+    const setStatus = (text, isError = false) => {
+      statusEl.textContent = text;
+      statusEl.classList.toggle('error', isError);
+    };
+    let appData = null;
+    let running = false;
+
+    function launchArgs(mode, extra = {}) {
+      const args = new Map(Object.entries(extra));
+      if (mode === 'settings') {
+        args.set('mode', 'settings');
+        return args;
+      }
+      for (const id of ['style', 'scroll', 'fish', 'clock', 'hour', 'visitor']) {
+        const v = document.getElementById(id).value;
+        if (v) args.set(id, v);
+      }
+      if (!args.has('lighting')) args.set('lighting', 'auto'); // so `hour` (or the real clock) drives the lighting
+      return args;
+    }
+
+    async function run(mode, extra) {
+      if (running) {
+        brs.terminate('restart');
+        await new Promise((r) => setTimeout(r, 400));
+      }
+      appData ??= await (await fetch('app.zip')).arrayBuffer();
+      const args = launchArgs(mode, extra);
+      setStatus(`Running ${mode === 'settings' ? 'settings screen' : 'screensaver'} with ${[...args].map(([k, v]) => `${k}=${v}`).join(' ')}`);
+      brs.execute('reef-tank-dev.zip', appData, { clearDisplayOnExit: false, entryPoint: true }, args);
+    }
+
+    // ---------- burn-in audit ----------
+    // Launches the screensaver with only its deterministic motions (scrolling, tide,
+    // light cycle) at 10x speed and no fish, bubbles, rays, visitors or clock. It
+    // samples every frame pixel for one full light cycle (5 min real time = 30 s
+    // here) and records, per pixel, when each of its R, G and B values had moved by
+    // at least THRESHOLD. Passing means every subpixel changed within the window.
+    const TIMESCALE = 10;
+    const WINDOW_REAL_S = 300;   // the guarantee window, in real (1x) seconds
+    const THRESHOLD = 12;        // minimum change per channel, out of 255
+    const SAMPLE_MS = 250;
+
+    async function audit() {
+      const panel = document.getElementById('auditPanel');
+      const text = document.getElementById('auditText');
+      panel.hidden = false;
+      text.textContent = 'Starting audit…';
+      const hourSel = document.getElementById('hour');
+      const hour = hourSel.value || '13'; // "Now" audits daytime
+      const when = hourSel.value ? hourSel.selectedOptions[0].text.toLowerCase() : 'day';
+      await run('screensaver', { ambient: 'off', timescale: String(TIMESCALE), lighting: 'auto', hour, clock: 'off' });
+      await new Promise((r) => setTimeout(r, 3000)); // let the app load and draw
+      const windowMs = (WINDOW_REAL_S / TIMESCALE) * 1000;
+      let first = brs.getScreenshot();
+      if (!first) throw new Error('no frame from the engine');
+      const { width: w, height: h } = first;
+      const n = w * h;
+      const lo = new Uint8Array(n * 3).fill(255);
+      const hi = new Uint8Array(n * 3);
+      const changedAt = new Float32Array(n).fill(-1); // real seconds when all 3 channels had moved
+      const t0 = performance.now();
+      let samples = 0;
+      while (performance.now() - t0 < windowMs) {
+        const frame = brs.getScreenshot();
+        const elapsedReal = ((performance.now() - t0) / 1000) * TIMESCALE;
+        if (frame && frame.width === w && frame.height === h) {
+          const d = frame.data;
+          for (let p = 0, q = 0, c = 0; p < n; p++, q += 4, c += 3) {
+            let moved = 0;
+            for (let k = 0; k < 3; k++) {
+              const v = d[q + k];
+              if (v < lo[c + k]) lo[c + k] = v;
+              if (v > hi[c + k]) hi[c + k] = v;
+              if (hi[c + k] - lo[c + k] >= THRESHOLD) moved++;
+            }
+            if (moved === 3 && changedAt[p] < 0) changedAt[p] = elapsedReal;
+          }
+          samples++;
+        }
+        const pct = Math.round(((performance.now() - t0) / windowMs) * 100);
+        text.textContent = `Sampling… ${pct}% (${samples} frames)`;
+        await new Promise((r) => setTimeout(r, SAMPLE_MS));
+      }
+      // Report: share of pixels that changed, and how long the slowest ones took.
+      const times = [];
+      let stuck = 0;
+      for (let p = 0; p < n; p++) (changedAt[p] < 0 ? stuck++ : times.push(changedAt[p]));
+      times.sort((a, b) => a - b);
+      const at = (f) => (times.length ? times[Math.min(times.length - 1, Math.floor(f * times.length))] : NaN);
+      const fmt = (sec) => (Number.isNaN(sec) ? '–' : `${Math.floor(sec / 60)}m ${String(Math.round(sec % 60)).padStart(2, '0')}s`);
+      const style = document.getElementById('style').value;
+      const scroll = document.getElementById('scroll').selectedOptions[0].text;
+      text.textContent = [
+        `Burn-in audit: ${style}, scrolling ${scroll}, ${when} lighting, fish/bubbles/rays off (deterministic motion only)`,
+        `Window: ${WINDOW_REAL_S / 60} min real time (run at ${TIMESCALE}x), ${samples} frames of ${w}x${h}`,
+        `Rule: every pixel's R, G and B must each change by at least ${THRESHOLD}/255`,
+        ``,
+        stuck === 0 ? `PASS: all ${n.toLocaleString()} pixels changed.` : `FAIL: ${stuck.toLocaleString()} of ${n.toLocaleString()} pixels (${((stuck / n) * 100).toFixed(3)}%) did not change enough (red below).`,
+        `Time until changed (real time): half the pixels ${fmt(at(0.5))}, 90% ${fmt(at(0.9))}, 99% ${fmt(at(0.99))}, slowest ${fmt(times.at(-1) ?? NaN)}`,
+      ].join('\n');
+      // Map: last frame dimmed, stuck pixels in red.
+      const map = new ImageData(w, h);
+      const last = brs.getScreenshot() ?? first;
+      for (let p = 0, q = 0; p < n; p++, q += 4) {
+        if (changedAt[p] < 0) map.data.set([255, 40, 40, 255], q);
+        else map.data.set([last.data[q] * 0.35, last.data[q + 1] * 0.35, last.data[q + 2] * 0.35, 255], q);
+      }
+      const off = new OffscreenCanvas(w, h);
+      off.getContext('2d').putImageData(map, 0, 0);
+      const mapCanvas = document.getElementById('auditMap');
+      mapCanvas.getContext('2d').drawImage(off, 0, 0, mapCanvas.width, mapCanvas.height);
+      setStatus(stuck === 0 ? 'Burn-in audit passed' : 'Burn-in audit found pixels that did not change', stuck !== 0);
+    }
+
+    async function main() {
+      brs.subscribe('preview', (event, data) => {
+        if (event === 'started') running = true;
+        else if (event === 'closed') running = false;
+        else if (event === 'error') {
+          running = false;
+          setStatus(`Error: ${typeof data === 'string' ? data : JSON.stringify(data)}`, true);
+        }
+      });
+      await brs.initialize(
+        { extensions: new Map([[brs.SupportedExtension.SceneGraph, './brs-sg.js']]), displayMode: '1080p' },
+        { debugToConsole: true, showStats: false }
+      );
+      for (const id of ['style', 'scroll', 'fish', 'hour', 'clock', 'visitor']) {
+        document.getElementById(id).addEventListener('change', () => run('screensaver'));
+      }
+      document.getElementById('restart').addEventListener('click', () => run('screensaver'));
+      document.getElementById('settings').addEventListener('click', () => run('settings'));
+      document.getElementById('audit').addEventListener('click', () => audit().catch((e) => setStatus(`Audit failed: ${e.message}`, true)));
+      run('screensaver');
+    }
+    globalThis.addEventListener('load', () => main().catch((e) => setStatus(`Failed to start: ${e.message}`, true)));
+  </script>
+</body>
+</html>

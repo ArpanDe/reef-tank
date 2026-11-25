@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="300" viewBox="0 0 520 300">
+  <defs>
+    <linearGradient id="w" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26323f"/><stop offset="0.5" stop-color="#2e3d4e"/><stop offset="1" stop-color="#3c4f64"/>
+    </linearGradient>
+    <clipPath id="c"><path d="M400,160 C380,198 344,236 298,268 C282,279 264,288 244,294 C250,280 252,262 248,242 C244,214 236,190 222,166 C270,164 344,162 400,160 Z"/></clipPath>
+  </defs>
+  <!-- near wing, sweeping down toward the viewer; flaps by squashing toward its root.
+       The root edge (along the body) has no outline so it blends into the back. -->
+  <path d="M400,160 C380,198 344,236 298,268 C282,279 264,288 244,294 C250,280 252,262 248,242 C244,214 236,190 222,166 C270,164 344,162 400,160 Z" fill="url(#w)"/>
+  <g clip-path="url(#c)" fill="none">
+    <!-- pale underside curling round the trailing edge -->
+    <path d="M244,294 C250,280 252,262 248,242 C244,214 236,190 222,166" stroke="#dbe5ec" stroke-width="10" stroke-opacity="0.9"/>
+    <path d="M244,294 C250,280 252,262 248,242 C244,214 236,190 222,166" stroke="#b8c6d0" stroke-width="2" transform="translate(7,0)"/>
+    <!-- soft sheen along the leading edge -->
+    <path d="M394,166 C376,202 342,236 298,266" stroke="#7890a8" stroke-width="4" stroke-opacity="0.5"/>
+  </g>
+  <path d="M400,160 C380,198 344,236 298,268 C282,279 264,288 244,294 C250,280 252,262 248,242 C244,214 236,190 222,166" fill="none" stroke="#0c1018" stroke-width="2.4" stroke-linejoin="round"/>
+</svg>

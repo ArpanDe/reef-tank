@@ -1,0 +1,59 @@
+palette:
+# Reef Tank pixel palette. Shared by every .txt grid; a grid's own palette: block adds to it.
+. transparent
+# outlines and neutrals
+k #0d1424
+K #2a3346
+w #ffffff
+W #d7e3ee
+g #8a9ab0
+# clownfish oranges
+O #ffad5c
+o #f47a20
+q #b8441c
+# royal blues
+B #63a6ff
+b #2c64e0
+n #1c3a9e
+N #13204e
+# yellows
+Y #fff48a
+y #ffd21f
+u #e09a12
+U #9a5e10
+# tans and browns (puffer, turtle skin)
+t #ecd49e
+T #c49a5c
+d #7d5530
+D #4a3020
+# corals and reds (seahorse, neon stripe)
+p #ffa898
+r #ff6b5b
+R #c43a3e
+# glowing cyan (neon)
+c #7af6ff
+C #1fb4d6
+# greens (turtle shell, sea grass)
+G #a6d468
+e #5f9c3e
+F #3f7a34
+E #2b5a2e
+# manta slate
+M #3f5070
+m #263247
+# jellyfish (translucent)
+I #fff0f8 b0
+P #ffa8d8 b0
+i #ff7ec4 c8
+x #c04f9e d0
+z #ff9fd0 70
+# kelp
+A #b4bf45
+a #7b8a2a
+S #5d6c24
+s #44551c
+# violets (anemone, angelfish fins)
+v #c890f0
+V #9058c8
+Z #5a3290
+h #ff8fc8

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="1100" viewBox="0 0 360 1100">
+  <defs>
+    <linearGradient id="fall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="0.18" stop-color="#ffffff" stop-opacity="0.78"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="0.75" stop-color="#ffffff" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft" filterUnits="userSpaceOnUse" x="0" y="-100" width="360" height="1300">
+      <feGaussianBlur stdDeviation="20 8"/>
+    </filter>
+    <filter id="softer" filterUnits="userSpaceOnUse" x="0" y="-100" width="360" height="1300">
+      <feGaussianBlur stdDeviation="9 4"/>
+    </filter>
+  </defs>
+  <!-- broad shaft: wide and bright at the top, narrowing and fading downward -->
+  <path d="M62,-60 L298,-60 L240,1120 L120,1120 Z" fill="url(#fall)" opacity="0.62" filter="url(#soft)"/>
+  <!-- brighter core -->
+  <path d="M120,-60 L236,-60 L206,1000 L156,1000 Z" fill="url(#fall)" opacity="0.5" filter="url(#soft)"/>
+  <!-- a few fine streaks inside the shaft -->
+  <g filter="url(#softer)">
+    <path d="M96,-60 L116,-60 L162,900 L152,900 Z" fill="url(#fall)" opacity="0.45"/>
+    <path d="M186,-60 L204,-60 L196,980 L188,980 Z" fill="url(#fall)" opacity="0.5"/>
+    <path d="M250,-60 L268,-60 L214,860 L206,860 Z" fill="url(#fall)" opacity="0.4"/>
+  </g>
+</svg>

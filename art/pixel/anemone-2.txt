@@ -1,0 +1,12 @@
+# anemone column
+grid:
+.ZvvvVVVVVVZZZZ.
+.ZvvvVVVVVVZZZZ.
+..ZvvVvVVVVZZZ..
+..ZvvVVVVvVZZZ..
+..ZvvVVVVVVZZZ..
+..ZvvVVVVVVZZZ..
+..ZvvVVvVVVZZZ..
+..ZvvVVVVVvZZZ..
+..ZvvvVVVVVZZZ..
+..ZvvVVVVVVZZZ..

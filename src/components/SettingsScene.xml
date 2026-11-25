@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Roku opens this from Settings > Theme > Screensaver > Reef Tank.
+     OK cycles the highlighted setting and saves it at once; Back exits. -->
+<component name="SettingsScene" extends="Scene">
+    <script type="text/brightscript" uri="pkg:/components/prefs.brs" />
+    <script type="text/brightscript" uri="pkg:/components/SettingsScene.brs" />
+    <children>
+        <Rectangle width="1920" height="1080" color="0x041A2EFF" />
+        <Label id="title" text="Reef Tank" translation="[120, 110]" font="font:LargeBoldSystemFont" color="0xEAF6FFFF" />
+        <Label text="Screensaver settings" translation="[120, 190]" font="font:MediumSystemFont" color="0x8FB8D8FF" />
+        <LabelList id="list" translation="[120, 300]" itemSize="[720, 84]" itemSpacing="[0, 8]"
+            color="0xCFE4F5FF" focusedColor="0x041A2EFF" font="font:MediumSystemFont" focusedFont="font:MediumBoldSystemFont" />
+        <Label text="OK changes the highlighted setting. Back to exit." translation="[120, 900]" font="font:SmallSystemFont" color="0x8FB8D8FF" />
+        <Rectangle translation="[956, 296]" width="848" height="481" color="0x8FB8D840" />
+        <Poster id="preview" translation="[960, 300]" width="840" height="473" />
+        <Label id="caption" translation="[960, 800]" width="840" horizAlign="center" font="font:SmallSystemFont" color="0x8FB8D8FF" />
+    </children>
+</component>

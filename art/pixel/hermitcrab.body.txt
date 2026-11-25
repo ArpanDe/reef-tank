@@ -1,0 +1,17 @@
+# hermit crab: shell, head, claw (static)
+grid:
+.k................
+ktkkkkkkk.........
+.kdtwwwwwkk.......
+..kdwwwwwwtk.k..k.
+.kttdddddwttkwkkwk
+.ktddwwwddtttkkknk
+kttdttdttdtttkknk.
+ktddttdttdttttknk.
+ktddttddddttdtkkk.
+.ktdtttddttdDkbbbk
+.kTddTTTTTddkbbBBy
+..kTdddddddDDkbbby
+...kkTTTTTkk.kkkk.
+.....kkkkk........
+..................

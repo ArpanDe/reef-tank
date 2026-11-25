@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="240" viewBox="0 0 200 240">
+  <defs>
+    <linearGradient id="t" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0" stop-color="#dfe7ec" stop-opacity="0.95"/><stop offset="1" stop-color="#b9ccd8" stop-opacity="0.8"/>
+    </linearGradient>
+    <clipPath id="c"><path d="M96,103 L80,103 C66,89 44,75 14,61 C22,72 26,80 28,88 C26,104 26,124 28,140 C26,148 22,156 14,167 C44,153 66,139 80,125 L96,125 Z"/></clipPath>
+  </defs>
+  <path d="M96,103 L80,103 C66,89 44,75 14,61 C22,72 26,80 28,88 C26,104 26,124 28,140 C26,148 22,156 14,167 C44,153 66,139 80,125 L96,125 Z" fill="url(#t)"/>
+  <g clip-path="url(#c)" fill="none">
+    <g stroke="#7f95a4" stroke-opacity="0.45" stroke-width="1.1">
+      <path d="M80,114 L22,72"/><path d="M80,114 L28,96"/><path d="M80,114 L27,114"/><path d="M80,114 L28,132"/><path d="M80,114 L22,156"/>
+    </g>
+    <path d="M58,86 C52,104 52,124 58,142" stroke="#2a2e36" stroke-opacity="0.35" stroke-width="6"/>
+  </g>
+  <path d="M80,103 C66,89 44,75 14,61 C22,72 26,80 28,88 C26,104 26,124 28,140 C26,148 22,156 14,167 C44,153 66,139 80,125" fill="none" stroke="#38424c" stroke-width="1.8" stroke-linejoin="round"/>
+</svg>
